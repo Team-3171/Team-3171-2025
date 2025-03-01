@@ -5,27 +5,22 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 // FRC Imports
 import edu.wpi.first.wpilibj.motorcontrol.MotorController;
-import edu.wpi.first.wpilibj.DutyCycleEncoder;
+import edu.wpi.first.wpilibj.AnalogEncoder;
 
-// CTRE Imports
-import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.signals.NeutralModeValue;
-import com.ctre.phoenix6.signals.SensorDirectionValue;
-import com.ctre.phoenix6.configs.CANcoderConfiguration;
-
 // REV Imports
 import com.revrobotics.RelativeEncoder;
+import com.revrobotics.spark.SparkBase.PersistMode;
+import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.SparkMax;
-import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
+import com.revrobotics.spark.config.SparkMaxConfig;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
 
 // Team 3171 Imports
 import frc.robot.RobotProperties;
 import frc.team3171.controllers.ThreadedPIDController;
-import frc.team3171.drive.SwerveUnitConfig.ENCODER_TYPE;
-import frc.team3171.drive.SwerveUnitConfig.MOTOR_TYPE;
 import static frc.team3171.HelperFunctions.Map;
 import static frc.team3171.HelperFunctions.Normalize_Gryo_Value;
 
@@ -35,12 +30,11 @@ import static frc.team3171.HelperFunctions.Normalize_Gryo_Value;
 public class SwerveUnit implements RobotProperties {
 
     // Motor Controllers
-    private final MOTOR_TYPE driveMotorType, slewMotorType;
-    private final MotorController driveMotor, slewMotor;
+    private final SparkFlex driveMotor;
+    private final SparkMax slewMotor;
 
     // Absolute Encoder
-    private final ENCODER_TYPE selectedEncoderType;
-    private final Object absoluteEncoder;
+    private final AnalogEncoder absoluteEncoder;
 
     // Relative Encoder
     private final RelativeEncoder relativeDriveEncoder, relativeSlewEncoder;
@@ -56,74 +50,34 @@ public class SwerveUnit implements RobotProperties {
      * Constructor
      * 
      * @param driveInverted
-     *            The config settings for the swerve unit.
+     *                      The config settings for the swerve unit.
      */
     public SwerveUnit(final SwerveUnitConfig swerveUnitConfig) {
         // Init the drive motor
-        driveMotorType = swerveUnitConfig.getDriveMotorType();
-        switch (driveMotorType) {
-            case REV_SPARKFLEX:
-                driveMotor = new SparkFlex(swerveUnitConfig.getDriveMotorID(), MotorType.kBrushless);
-                //((SparkFlex) driveMotor).restoreFactoryDefaults();
-                ((SparkFlex) driveMotor).setInverted(swerveUnitConfig.isDriveMotorInverted());
-                //((SparkFlex) driveMotor).setIdleMode(IdleMode.kBrake);
-                //((SparkFlex) driveMotor).burnFlash();
-                relativeDriveEncoder = ((SparkFlex) driveMotor).getEncoder();
-                break;
-            default:
-                driveMotor = new SparkMax(swerveUnitConfig.getDriveMotorID(), MotorType.kBrushless);
-                //((SparkMax) driveMotor).restoreFactoryDefaults();
-                ((SparkMax) driveMotor).setInverted(swerveUnitConfig.isDriveMotorInverted());
-                //((SparkMax) driveMotor).setIdleMode(IdleMode.kBrake);
-                //((SparkMax) driveMotor).burnFlash();
-                relativeDriveEncoder = ((SparkMax) driveMotor).getEncoder();
-                break;
-        }
+        driveMotor = new SparkFlex(swerveUnitConfig.getDriveMotorID(), MotorType.kBrushless);
+        SparkMaxConfig driveConfig = new SparkMaxConfig();
+        driveConfig.smartCurrentLimit(50).idleMode(IdleMode.kBrake).inverted(swerveUnitConfig.isDriveMotorInverted());
+        // Persist parameters to retain configuration in the event of a power cycle
+        driveMotor.configure(driveConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+        relativeDriveEncoder = driveMotor.getEncoder();
 
         // Init the slew motor
-        slewMotorType = swerveUnitConfig.getSlewMotorType();
-        switch (slewMotorType) {
-            case REV_SPARKFLEX:
-                slewMotor = new SparkFlex(swerveUnitConfig.getSlewMotorID(), MotorType.kBrushless);
-                //((SparkFlex) slewMotor).restoreFactoryDefaults();
-                ((SparkFlex) slewMotor).setInverted(swerveUnitConfig.isSlewMotorInverted());
-                //((SparkFlex) slewMotor).setIdleMode(IdleMode.kBrake);
-                //((SparkFlex) slewMotor).burnFlash();
-                relativeSlewEncoder = ((SparkFlex) slewMotor).getEncoder();
-                break;
-            default:
-                slewMotor = new SparkMax(swerveUnitConfig.getSlewMotorID(), MotorType.kBrushless);
-                //((SparkMax) slewMotor).restoreFactoryDefaults();
-                ((SparkMax) slewMotor).setInverted(swerveUnitConfig.isSlewMotorInverted());
-                //((SparkMax) slewMotor).setIdleMode(IdleMode.kBrake);
-                //((SparkMax) slewMotor).burnFlash();
-                relativeSlewEncoder = ((SparkMax) slewMotor).getEncoder();
-                break;
-        }
+        slewMotor = new SparkMax(swerveUnitConfig.getSlewMotorID(), MotorType.kBrushless);
+        SparkMaxConfig slewConfig = new SparkMaxConfig();
+        slewConfig.smartCurrentLimit(50).idleMode(IdleMode.kBrake).inverted(swerveUnitConfig.isSlewMotorInverted());
+        // Persist parameters to retain configuration in the event of a power cycle
+        slewMotor.configure(slewConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+        relativeSlewEncoder = slewMotor.getEncoder();
 
         // Init the absolute position encoder used for the slew angle
-        selectedEncoderType = swerveUnitConfig.getAbsoluteEncoderType();
-        switch (selectedEncoderType) {
-            case CTRE:
-                absoluteEncoder = new CANcoder(swerveUnitConfig.getAbsoluteEncoderID(), swerveUnitConfig.getCANBUS());
-                CANcoderConfiguration absoluteEncoderConfiguration = new CANcoderConfiguration();
-                //absoluteEncoderConfiguration.MagnetSensor.AbsoluteSensorRange = AbsoluteSensorRangeValue.Unsigned_0To1;
-                absoluteEncoderConfiguration.MagnetSensor.SensorDirection = swerveUnitConfig.isAbsoluteEncoderInverted()
-                        ? SensorDirectionValue.CounterClockwise_Positive
-                        : SensorDirectionValue.Clockwise_Positive;
-                ((CANcoder) absoluteEncoder).getConfigurator().apply(absoluteEncoderConfiguration);
-                break;
-            default:
-                // Assumes duty cycle absolute encoder because the REV connector on the SparkMax SUCK
-                absoluteEncoder = new DutyCycleEncoder(swerveUnitConfig.getAbsoluteEncoderID());
-                break;
-        }
+        absoluteEncoder = new AnalogEncoder(swerveUnitConfig.getAbsoluteEncoderID());
 
         // Init the queue for pid data, if enabled
         slewPIDData = swerveUnitConfig.isLogPIDData() ? new ConcurrentLinkedQueue<String>() : null;
 
         // Init the gyro PID controller
-        slewPIDController = new ThreadedPIDController(this::getSlewAngle, SLEW_KP, SLEW_KI, SLEW_KD, SLEW_PID_MIN, SLEW_PID_MAX, false);
+        slewPIDController = new ThreadedPIDController(this::getSlewAngle, SLEW_KP, SLEW_KI, SLEW_KD, SLEW_PID_MIN,
+                SLEW_PID_MAX, false);
         slewPIDController.setMinValue(-180);
         slewPIDController.setMaxValue(180);
         slewPIDController.start(20, true, slewPIDData);
@@ -136,24 +90,14 @@ public class SwerveUnit implements RobotProperties {
      * Sets the drive motor to the desired speed.
      * 
      * @param speed
-     *            The speed, from -1.0 to 1.0, to set the drive motor to.
+     *              The speed, from -1.0 to 1.0, to set the drive motor to.
      */
     public void setDriveSpeed(final double speed) {
         /*
          * Sets the speed of the master TalonFX, and therefore it's followers, to the
          * given value
          */
-        switch (driveMotorType) {
-            case CTRE:
-                ((TalonFX) driveMotor).set(speed);
-                break;
-            case REV_SPARKFLEX:
-                ((SparkFlex) driveMotor).set(speed);
-                break;
-            default:
-                ((SparkMax) driveMotor).set(speed);
-                break;
-        }
+        driveMotor.set(speed);
     }
 
     /**
@@ -162,39 +106,7 @@ public class SwerveUnit implements RobotProperties {
      * @return The current drive motor speed, from -1.0 to 1.0.
      */
     public double getDriveSpeed() {
-        switch (driveMotorType) {
-            case CTRE:
-                return ((TalonFX) driveMotor).get();
-            case REV_SPARKFLEX:
-                return ((SparkFlex) driveMotor).get();
-            default:
-                return ((SparkMax) driveMotor).get();
-        }
-    }
-
-    /**
-     * Sets whether or not the direction of the drive motor needs to be inverted.
-     * 
-     * @param inverted
-     *            Whether or not the direction of the drive motor need to be
-     *            inverted.
-     */
-    public void setDriveInverted(final boolean inverted) {
-        /*
-         * Sets whether or not the direction of the master TalonFX, and therefore it's
-         * followers, need to be inverted
-         */
-        switch (driveMotorType) {
-            case CTRE:
-                ((TalonFX) driveMotor).setInverted(inverted);
-                break;
-            case REV_SPARKFLEX:
-                ((SparkFlex) driveMotor).setInverted(inverted);
-                break;
-            default:
-                ((SparkMax) driveMotor).setInverted(inverted);
-                break;
-        }
+        return driveMotor.get();
     }
 
     /**
@@ -207,14 +119,7 @@ public class SwerveUnit implements RobotProperties {
          * Gets whether or not the direction of the master TalonFX, and therefore it's
          * followers, are inverted
          */
-        switch (driveMotorType) {
-            case CTRE:
-                return ((TalonFX) driveMotor).getInverted();
-            case REV_SPARKFLEX:
-                return ((SparkFlex) driveMotor).getInverted();
-            default:
-                return ((SparkMax) driveMotor).getInverted();
-        }
+        return driveMotor.configAccessor.getInverted();
     }
 
     /**
@@ -223,24 +128,14 @@ public class SwerveUnit implements RobotProperties {
      */
     public void updateSlewAngle() {
         // Update Slew Motor Speed
-        switch (slewMotorType) {
-            case CTRE:
-                ((TalonFX) slewMotor).set(slewPIDController.getPIDValue());
-                break;
-            case REV_SPARKFLEX:
-                ((SparkFlex) slewMotor).set(slewPIDController.getPIDValue());
-                break;
-            default:
-                ((SparkMax) slewMotor).set(slewPIDController.getPIDValue());
-                break;
-        }
+        slewMotor.set(slewPIDController.getPIDValue());
     }
 
     /**
      * Sets the slew motor to the desired angle.
      * 
      * @param angle
-     *            The angle, from -180.0 to 180.0, to set the slew motor to.
+     *              The angle, from -180.0 to 180.0, to set the slew motor to.
      */
     public void updateSlewAngle(final double angle) {
         // Update the target angle of slew motor PID controller
@@ -252,20 +147,10 @@ public class SwerveUnit implements RobotProperties {
      * Sets the slew motor to the desired speed.
      * 
      * @param speed
-     *            The speed, from -1.0 to 1.0, to set the slew motor to.
+     *              The speed, from -1.0 to 1.0, to set the slew motor to.
      */
     public void setSlewSpeed(final double speed) {
-        switch (slewMotorType) {
-            case CTRE:
-                ((TalonFX) slewMotor).set(speed);
-                break;
-            case REV_SPARKFLEX:
-                ((SparkFlex) slewMotor).set(speed);
-                break;
-            default:
-                ((SparkMax) slewMotor).set(speed);
-                break;
-        }
+        slewMotor.set(speed);
     }
 
     /**
@@ -274,29 +159,22 @@ public class SwerveUnit implements RobotProperties {
      * @return The raw value from the {@link MotorController} integrated encoder.
      */
     public double getIntegratedEncoderValue() {
-        switch (driveMotorType) {
-            case CTRE:
-                return ((TalonFX) driveMotor).getPosition().getValueAsDouble();
-            default:
-                return relativeDriveEncoder != null ? relativeDriveEncoder.getPosition() : 0;
-        }
+        return relativeDriveEncoder != null ? relativeDriveEncoder.getPosition() : 0;
     }
 
     /**
-     * Returns the velocity of the {@link MotorController} integrated encoder. If the drive motor type is of
-     * {@link MOTOR_TYPE.CTRE}, then the encoder 2048 ticks per revolution and the return units of the velocity is in ticks
-     * per 100ms. If the drive motor is of {@link MOTOR_TYPE.REV} then it returns the RPM of the motor.
+     * Returns the velocity of the {@link MotorController} integrated encoder. If
+     * the drive motor type is of
+     * {@link MOTOR_TYPE.CTRE}, then the encoder 2048 ticks per revolution and the
+     * return units of the velocity is in ticks
+     * per 100ms. If the drive motor is of {@link MOTOR_TYPE.REV} then it returns
+     * the RPM of the motor.
      * 
      * @return The velocity, in ticks per 100ms or RPM of the
      *         {@link MotorController} integrated encoder.
      */
     public double getIntegratedEncoderVelocity() {
-        switch (driveMotorType) {
-            case CTRE:
-                return ((TalonFX) driveMotor).getVelocity().getValueAsDouble();
-            default:
-                return relativeDriveEncoder != null ? relativeDriveEncoder.getVelocity() : 0;
-        }
+        return relativeDriveEncoder != null ? relativeDriveEncoder.getVelocity() : 0;
     }
 
     /**
@@ -308,15 +186,8 @@ public class SwerveUnit implements RobotProperties {
         final double mappedEncoderAngle;
 
         // Get the absolute encoder value based on encoder type
-        switch (selectedEncoderType) {
-            case CTRE:
-                mappedEncoderAngle = Map(((CANcoder) absoluteEncoder).getAbsolutePosition().getValueAsDouble(), 0, 1, 0, 360);
-                break;
-            default:
-                // Assumes the encoder is wired into the slew motor spark max
-                mappedEncoderAngle = 0;//Map(((DutyCycleEncoder) absoluteEncoder).getAbsolutePosition(), 0, 1, 0, 360);
-                break;
-        }
+        mappedEncoderAngle = Map(absoluteEncoder.get(), 0, 1, 0, 360);
+
         return Normalize_Gryo_Value(mappedEncoderAngle - startingAngle);
     }
 
@@ -337,23 +208,10 @@ public class SwerveUnit implements RobotProperties {
     public double getSlewVelocity() {
         final double slewVelocity;
         // Get the absolute encoder value based on encoder type
-        switch (selectedEncoderType) {
-            case CTRE:
-                slewVelocity = ((CANcoder) absoluteEncoder).getVelocity().getValueAsDouble();
-                break;
-            default:
-                switch (slewMotorType) {
-                    case CTRE:
-                        // If theres no cancoder and not a REV motor then get the value from the TalonFX integrated encoder
-                        slewVelocity = ((TalonFX) slewMotor).getVelocity().getValueAsDouble();
-                        break;
-                    default:
-                        // Assumes the encoder is wired into the slew motor spark max
-                        slewVelocity = relativeSlewEncoder != null ? relativeSlewEncoder.getVelocity() : 0;
-                        break;
-                }
-                break;
-        }
+
+        // Assumes the encoder is wired into the slew motor spark max
+        slewVelocity = relativeSlewEncoder != null ? relativeSlewEncoder.getVelocity() : 0;
+
         return slewVelocity;
     }
 
@@ -368,28 +226,8 @@ public class SwerveUnit implements RobotProperties {
      * Disables the drive and slew {@link TalonFX} motors.
      */
     public void disable() {
-        switch (driveMotorType) {
-            case CTRE:
-                ((TalonFX) driveMotor).disable();
-                break;
-            case REV_SPARKFLEX:
-                ((SparkFlex) driveMotor).disable();
-                break;
-            default:
-                ((SparkMax) driveMotor).disable();
-                break;
-        }
-        switch (slewMotorType) {
-            case CTRE:
-                ((TalonFX) slewMotor).disable();
-                break;
-            case REV_SPARKFLEX:
-                ((SparkFlex) slewMotor).disable();
-                break;
-            default:
-                ((SparkMax) slewMotor).disable();
-                break;
-        }
+        driveMotor.disable();
+        slewMotor.disable();
         slewPIDController.disablePID();
     }
 
@@ -401,15 +239,8 @@ public class SwerveUnit implements RobotProperties {
         final double mappedEncoderAngle;
 
         // Get the absolute encoder value based on encoder type
-        switch (selectedEncoderType) {
-            case CTRE:
-                mappedEncoderAngle = Map(((CANcoder) absoluteEncoder).getAbsolutePosition().getValueAsDouble(), 0, 1, 0, 360);
-                break;
-            default:
-                // Assumes the encoder is wired into the slew motor spark max
-                mappedEncoderAngle = 0;//Map(((DutyCycleEncoder) absoluteEncoder).getAbsolutePosition(), 0, 1, 0, 360);
-                break;
-        }
+        mappedEncoderAngle = Map(absoluteEncoder.get(), 0, 1, 0, 360);
+
         startingAngle = Normalize_Gryo_Value(mappedEncoderAngle - slewOffset);
     }
 
