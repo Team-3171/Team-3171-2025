@@ -12,8 +12,6 @@ import edu.wpi.first.apriltag.AprilTagFields;
 
 // Team 3171 Imports
 import frc.team3171.drive.SwerveUnitConfig;
-import frc.team3171.drive.SwerveUnitConfig.ENCODER_TYPE;
-import frc.team3171.drive.SwerveUnitConfig.MOTOR_TYPE;
 import frc.team3171.drive.SwerveUnitConfig.SwerveUnitConfigBuilder;
 import frc.team3171.models.PhotonCameraConfig;
 import frc.team3171.models.ShooterShot;
@@ -36,18 +34,10 @@ public interface RobotProperties {
         public static final boolean SWERVE_UNIT_ORIENTATION_OPTIMIZATION = true;
 
         /** Swerve Unit Configuration **/
-        public static final SwerveUnitConfig lf_Unit_Config = new SwerveUnitConfigBuilder(MOTOR_TYPE.REV_SPARKFLEX, 2,
-                        MOTOR_TYPE.REV_SPARKMAX, 3,
-                        ENCODER_TYPE.REV, 3).build();
-        public static final SwerveUnitConfig lr_Unit_Config = new SwerveUnitConfigBuilder(MOTOR_TYPE.REV_SPARKFLEX, 4,
-                        MOTOR_TYPE.REV_SPARKMAX, 5,
-                        ENCODER_TYPE.REV, 1).build();
-        public static final SwerveUnitConfig rf_Unit_Config = new SwerveUnitConfigBuilder(MOTOR_TYPE.REV_SPARKFLEX, 6,
-                        MOTOR_TYPE.REV_SPARKMAX, 7,
-                        ENCODER_TYPE.REV, 2).build();
-        public static final SwerveUnitConfig rr_Unit_Config = new SwerveUnitConfigBuilder(MOTOR_TYPE.REV_SPARKFLEX, 8,
-                        MOTOR_TYPE.REV_SPARKMAX, 9,
-                        ENCODER_TYPE.REV, 0).build();
+        public static final SwerveUnitConfig lf_Unit_Config = new SwerveUnitConfigBuilder(2, 3, 3).build();
+        public static final SwerveUnitConfig lr_Unit_Config = new SwerveUnitConfigBuilder(4, 5, 1).build();
+        public static final SwerveUnitConfig rf_Unit_Config = new SwerveUnitConfigBuilder(6, 7, 2).build();
+        public static final SwerveUnitConfig rr_Unit_Config = new SwerveUnitConfigBuilder(8, 9, 0).build();
 
         /** CAN ID Properties **/
         public static final int GYRO_CAN_ID = 10;
