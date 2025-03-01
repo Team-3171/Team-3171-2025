@@ -36,13 +36,17 @@ public interface RobotProperties {
         public static final boolean SWERVE_UNIT_ORIENTATION_OPTIMIZATION = true;
 
         /** Swerve Unit Configuration **/
-        public static final SwerveUnitConfig lf_Unit_Config = new SwerveUnitConfigBuilder(MOTOR_TYPE.REV_SPARKFLEX, 2, MOTOR_TYPE.REV_SPARKMAX, 3,
+        public static final SwerveUnitConfig lf_Unit_Config = new SwerveUnitConfigBuilder(MOTOR_TYPE.REV_SPARKFLEX, 2,
+                        MOTOR_TYPE.REV_SPARKMAX, 3,
                         ENCODER_TYPE.REV, 3).build();
-        public static final SwerveUnitConfig lr_Unit_Config = new SwerveUnitConfigBuilder(MOTOR_TYPE.REV_SPARKFLEX, 4, MOTOR_TYPE.REV_SPARKMAX, 5,
+        public static final SwerveUnitConfig lr_Unit_Config = new SwerveUnitConfigBuilder(MOTOR_TYPE.REV_SPARKFLEX, 4,
+                        MOTOR_TYPE.REV_SPARKMAX, 5,
                         ENCODER_TYPE.REV, 1).build();
-        public static final SwerveUnitConfig rf_Unit_Config = new SwerveUnitConfigBuilder(MOTOR_TYPE.REV_SPARKFLEX, 6, MOTOR_TYPE.REV_SPARKMAX, 7,
+        public static final SwerveUnitConfig rf_Unit_Config = new SwerveUnitConfigBuilder(MOTOR_TYPE.REV_SPARKFLEX, 6,
+                        MOTOR_TYPE.REV_SPARKMAX, 7,
                         ENCODER_TYPE.REV, 2).build();
-        public static final SwerveUnitConfig rr_Unit_Config = new SwerveUnitConfigBuilder(MOTOR_TYPE.REV_SPARKFLEX, 8, MOTOR_TYPE.REV_SPARKMAX, 9,
+        public static final SwerveUnitConfig rr_Unit_Config = new SwerveUnitConfigBuilder(MOTOR_TYPE.REV_SPARKFLEX, 8,
+                        MOTOR_TYPE.REV_SPARKMAX, 9,
                         ENCODER_TYPE.REV, 0).build();
 
         /** CAN ID Properties **/
@@ -52,8 +56,27 @@ public interface RobotProperties {
         public static final int UPPER_FEEDER_MASTER_CAN_ID = 13, UPPER_FEEDER_FOLLOWER_CAN_ID = 14;
         public static final int LEFT_ACUATOR_CAN_ID = 18, RIGHT_ACUATOR_CAN_ID = 19;
 
+        /** CAN ID Properties **/
+        public static final int ELEVATOR_ONE_CAN_ID = 24, ELEVATOR_TWO_CAN_ID = 23;
+        public static final int PCM_CAN_ID = 2;
+        public static final int TILTY_MAGOO_CAN_ID = 5;
+
+        /** Pneumatic Channels **/
+        public static final int PICKUP_FORWARD_CHANNEL = 0, PICKUP_REVERSE_CHANNEL = 1;
+        public static final int PICKUPTILT_FORWARD_CHANNEL = 4, PICKUPTILT_REVERSE_CHANNEL = 5;
+
+        /** CAN BUS Properties **/
+        public static final String GYRO_CAN_BUS = "canivore";
+        public static final String ELEVATOR_ONE_CAN_BUS = "canivore", ELEVATOR_TWO_CAN_BUS = "canivore";
+
+        /** Inversion Properties **/
+        public static final boolean ELEVATOR_INVERTED = true;
+        public static final boolean LEFT_ACUATOR_INVERTED = true, RIGHT_ACUATOR_INVERTED = true;
+        public static final boolean PICKUP_INVERTED = false, PICKUPTILT_INVERTED = true;
+
         /** Shooter Variables **/
-        public static final boolean LOWER_SHOOTER_INVERTED = true, UPPER_SHOOTER_INVERTED = true, SHOOTER_TILT_INVERTED = false;
+        public static final boolean LOWER_SHOOTER_INVERTED = true, UPPER_SHOOTER_INVERTED = true,
+                        SHOOTER_TILT_INVERTED = false;
         public static final double SHOOTER_TILT_ALLOWED_DEVIATION = 3; // Shooter Tilt Accuracy Settings
         public static final double SHOOTER_ALLOWED_PERCENT_ERROR = .05; // Shooter Veloctity Accuracy Settings
         public static final double SHOOTER_DESIRED_AT_SPEED_TIME = .75; // Shooter Veloctity Time Window Settings
@@ -71,6 +94,19 @@ public interface RobotProperties {
         public static final double SHOOTER_TILT_ZERO_POSITION = 12.3;
         public static final double SHOOTER_TILT_MIN_POSITION = -60, SHOOTER_TILT_MAX_POSITION = 70;
 
+        /** Compressor Properties **/
+        public static final double MIN_PRESSURE = 95, MAX_PRESSURE = 110;
+
+        /** Sensor Channels **/
+        public static int ELEVATOR_SENSOR_CHANNEL = 0;
+        public static int ELEVATOR_ENCODER_CHANNEL = 1;
+
+        /** PID Properties **/
+        public static final double LIMELIGHT_KP = -.0175, LIMELIGHT_KI = -.0022, LIMELIGHT_KD = -.0022,
+                        LIMELIGHT_MIN = -.5, LIMELIGHT_MAX = .5;
+        public static final double ELEVATOR_KP = .6, ELEVATOR_KI = .1, ELEVATOR_KD = 0, ELEVATOR_KF = 0,
+                        ELEVATOR_PID_MIN = -.25, ELEVATOR_PID_MAX = .4;
+
         /** Feeder Variables **/
         public static final boolean LOWER_FEEDER_INVERTED = true, UPPER_FEEDER_INVERTED = false;
         public static final double LOWER_FEED_PICKUP_SPEED = .5, UPPER_FEED_PICKUP_SPEED = .25;
@@ -83,11 +119,15 @@ public interface RobotProperties {
         /** Photon Vision Constants **/
         public static final HashMap<String, PhotonCameraConfig> PHOTON_CAMERAS_CONFIGS = new HashMap<>() {
                 {
-                        put("FRONT_TARGETING_CAMERA", new PhotonCameraConfig("FRONT_TARGETING_CAMERA", Units.inchesToMeters(15), Units.degreesToRadians(22.5)));
-                        put("REAR_TARGETING_CAMERA", new PhotonCameraConfig("REAR_TARGETING_CAMERA", Units.inchesToMeters(15), Units.degreesToRadians(22.5)));
-                        // put("FRONT_PICKUP_CAMERA", new PhotonCameraConfig("FRONT_PICKUP_CAMERA", Units.inchesToMeters(9),
+                        put("FRONT_TARGETING_CAMERA", new PhotonCameraConfig("FRONT_TARGETING_CAMERA",
+                                        Units.inchesToMeters(15), Units.degreesToRadians(22.5)));
+                        put("REAR_TARGETING_CAMERA", new PhotonCameraConfig("REAR_TARGETING_CAMERA",
+                                        Units.inchesToMeters(15), Units.degreesToRadians(22.5)));
+                        // put("FRONT_PICKUP_CAMERA", new PhotonCameraConfig("FRONT_PICKUP_CAMERA",
+                        // Units.inchesToMeters(9),
                         // Units.degreesToRadians(0)));
-                        // put("REAR_PICKUP_CAMERA", new PhotonCameraConfig("REAR_PICKUP_CAMERA", Units.inchesToMeters(9),
+                        // put("REAR_PICKUP_CAMERA", new PhotonCameraConfig("REAR_PICKUP_CAMERA",
+                        // Units.inchesToMeters(9),
                         // Units.degreesToRadians(0)));
                 }
         };
@@ -122,25 +162,34 @@ public interface RobotProperties {
                 }
         };
 
-        public static final AprilTagFieldLayout AprilTagLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2024Crescendo);
+        public static final AprilTagFieldLayout AprilTagLayout = AprilTagFieldLayout
+                        .loadField(AprilTagFields.k2024Crescendo);
 
         /** PID Variables **/
         public static final double GYRO_KP = .01, GYRO_KI = .0001, GYRO_KD = .0, GYRO_MIN = -.5, GYRO_MAX = .5;
-        //public static final double GYRO_KP = .013, GYRO_KI = .00075, GYRO_KD = .00075, GYRO_MIN = -.5, GYRO_MAX = .5;
-        // public static final double GYRO_KP = .015, GYRO_KI = 0.0015, GYRO_KD = -.15, GYRO_MIN = -.75, GYRO_MAX = .75;
-        // public static final double SLEW_KP = -.005, SLEW_KI = -.0004, SLEW_KD = .035, SLEW_PID_MIN = -1, SLEW_PID_MAX = 1;
-        public static final double SLEW_KP = -.015, SLEW_KI = -0.002, SLEW_KD = .003, SLEW_PID_MIN = -.6, SLEW_PID_MAX = .75;
-        public static final double SHOOTER_KP = .00025, SHOOTER_KI = .0004, SHOOTER_KD = -.002, SHOOTER_MIN = -1, SHOOTER_MAX = 1;
-        //public static final double TILT_KP = .02, TILT_KI = .0005, TILT_KD = -.02, TILT_MIN = -.75, TILT_MAX = .75;
-       
+        // public static final double GYRO_KP = .013, GYRO_KI = .00075, GYRO_KD =
+        // .00075, GYRO_MIN = -.5, GYRO_MAX = .5;
+        // public static final double GYRO_KP = .015, GYRO_KI = 0.0015, GYRO_KD = -.15,
+        // GYRO_MIN = -.75, GYRO_MAX = .75;
+        // public static final double SLEW_KP = -.005, SLEW_KI = -.0004, SLEW_KD = .035,
+        // SLEW_PID_MIN = -1, SLEW_PID_MAX = 1;
+        public static final double SLEW_KP = -.015, SLEW_KI = -0.002, SLEW_KD = .003, SLEW_PID_MIN = -.6,
+                        SLEW_PID_MAX = .75;
+        public static final double SHOOTER_KP = .00025, SHOOTER_KI = .0004, SHOOTER_KD = -.002, SHOOTER_MIN = -1,
+                        SHOOTER_MAX = 1;
+        // public static final double TILT_KP = .02, TILT_KI = .0005, TILT_KD = -.02,
+        // TILT_MIN = -.75, TILT_MAX = .75;
+
         /** new tilt PID variables **/
-        // public static final double TILT_KP = .0125, TILT_KI = .000125, TILT_KD = -.0001, TILT_MIN = -.75, TILT_MAX = .75;
+        // public static final double TILT_KP = .0125, TILT_KI = .000125, TILT_KD =
+        // -.0001, TILT_MIN = -.75, TILT_MAX = .75;
         public static final double TILT_KP = .015, TILT_KI = .0, TILT_KD = -.02, TILT_MIN = -.75, TILT_MAX = .75;
 
         /** Auton Mode Constants **/
         public static final String DEFAULT_AUTON = "Disabled";
 
         /** Auton Modes **/
-        public static final String[] AUTON_OPTIONS = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16" };
+        public static final String[] AUTON_OPTIONS = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12",
+                        "13", "14", "15", "16" };
 
 }
