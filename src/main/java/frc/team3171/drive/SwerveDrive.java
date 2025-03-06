@@ -37,7 +37,8 @@ public class SwerveDrive implements RobotProperties {
     // PID Data Logger
     private List<UDPClient> udpClients;
 
-    public SwerveDrive(final SwerveUnitConfig lrUnitConfig, final SwerveUnitConfig lfUnitConfig, final SwerveUnitConfig rfUnitConfig,
+    public SwerveDrive(final SwerveUnitConfig lrUnitConfig, final SwerveUnitConfig lfUnitConfig,
+            final SwerveUnitConfig rfUnitConfig,
             final SwerveUnitConfig rrUnitConfig) {
         // Init Swerve Units
         this.lrUnit = new SwerveUnit(lrUnitConfig);
@@ -77,7 +78,8 @@ public class SwerveDrive implements RobotProperties {
         rrUnit.enable();
     }
 
-    public void drive(final double driveAngle, final double driveMagnitude, final double rotationalMagnitude, final boolean boostMode) {
+    public void drive(final double driveAngle, final double driveMagnitude, final double rotationalMagnitude,
+            final boolean boostMode) {
         double lfMagnitude, lrMagnitude, rfMagnitude, rrMagnitude;
         if (driveMagnitude != 0 || rotationalMagnitude != 0) {
             // Create the initial vector
@@ -96,14 +98,20 @@ public class SwerveDrive implements RobotProperties {
             rrAngle = rrResultantVector[0];
 
             // Find vector with the largest magnitude
-            final double[] largestVector = Return_Vector_With_Largest_Magnitude(lfResultantVector, lrResultantVector, rfResultantVector,
+            final double[] largestVector = Return_Vector_With_Largest_Magnitude(lfResultantVector, lrResultantVector,
+                    rfResultantVector,
                     rrResultantVector);
 
-            // Update the magnitudes, if the largest vector exceeds 1.0 then scale all others relative to it
-            lfMagnitude = Map(lfResultantVector[1], 0, largestVector[1] > 1 ? largestVector[1] : 1, 0, boostMode ? 1 : MAX_DRIVE_SPEED);
-            lrMagnitude = Map(lrResultantVector[1], 0, largestVector[1] > 1 ? largestVector[1] : 1, 0, boostMode ? 1 : MAX_DRIVE_SPEED);
-            rfMagnitude = Map(rfResultantVector[1], 0, largestVector[1] > 1 ? largestVector[1] : 1, 0, boostMode ? 1 : MAX_DRIVE_SPEED);
-            rrMagnitude = Map(rrResultantVector[1], 0, largestVector[1] > 1 ? largestVector[1] : 1, 0, boostMode ? 1 : MAX_DRIVE_SPEED);
+            // Update the magnitudes, if the largest vector exceeds 1.0 then scale all
+            // others relative to it
+            lfMagnitude = Map(lfResultantVector[1], 0, largestVector[1] > 1 ? largestVector[1] : 1, 0,
+                    boostMode ? 1 : MAX_DRIVE_SPEED);
+            lrMagnitude = Map(lrResultantVector[1], 0, largestVector[1] > 1 ? largestVector[1] : 1, 0,
+                    boostMode ? 1 : MAX_DRIVE_SPEED);
+            rfMagnitude = Map(rfResultantVector[1], 0, largestVector[1] > 1 ? largestVector[1] : 1, 0,
+                    boostMode ? 1 : MAX_DRIVE_SPEED);
+            rrMagnitude = Map(rrResultantVector[1], 0, largestVector[1] > 1 ? largestVector[1] : 1, 0,
+                    boostMode ? 1 : MAX_DRIVE_SPEED);
         } else {
             // Keep the current wheel angles but update the magnitudes
             lfMagnitude = 0;
@@ -177,7 +185,8 @@ public class SwerveDrive implements RobotProperties {
         final double lfSlewOffset = lfUnit.getSlewOffset();
         final double rfSlewOffset = rfUnit.getSlewOffset();
         final double rrSlewOffset = rrUnit.getSlewOffset();
-        saveSlewCalibration(String.format("%.4f,%.4f,%.4f,%.4f;\n", lrSlewOffset, lfSlewOffset, rfSlewOffset, rrSlewOffset));
+        saveSlewCalibration(
+                String.format("%.4f,%.4f,%.4f,%.4f;\n", lrSlewOffset, lfSlewOffset, rfSlewOffset, rrSlewOffset));
     }
 
     /**
@@ -185,7 +194,7 @@ public class SwerveDrive implements RobotProperties {
      * path and clears the AutonRecorder.
      * 
      * @param autonFileName
-     *            The path to the file to save the auton data to.
+     *                      The path to the file to save the auton data to.
      */
     public synchronized void saveSlewCalibration(final String slewOffsets) {
         try {
@@ -212,7 +221,8 @@ public class SwerveDrive implements RobotProperties {
      */
     public synchronized void loadSlewCalibration() {
         try {
-            BufferedReader reader = new BufferedReader(new FileReader(String.format("/home/lvuser/%s.txt", "slewcalibration")));
+            BufferedReader reader = new BufferedReader(
+                    new FileReader(String.format("/home/lvuser/%s.txt", "slewcalibration")));
             String dataString = reader.readLine();
 
             // Parse the string
@@ -252,10 +262,14 @@ public class SwerveDrive implements RobotProperties {
         swerveTab.addString("RF Position:", () -> String.format("%.2f", rfUnit.getIntegratedEncoderValue()));
         swerveTab.addString("RR Position:", () -> String.format("%.2f", rrUnit.getIntegratedEncoderValue()));
 
-        swerveTab.addString("LF Slew Angle:", () -> String.format("%.2f | %.2f", lfUnit.getSlewAngle(), lfUnit.getSlewTargetAngle()));
-        swerveTab.addString("LR Slew Angle:", () -> String.format("%.2f | %.2f", lrUnit.getSlewAngle(), lrUnit.getSlewTargetAngle()));
-        swerveTab.addString("RF Slew Angle:", () -> String.format("%.2f | %.2f", rfUnit.getSlewAngle(), rfUnit.getSlewTargetAngle()));
-        swerveTab.addString("RR Slew Angle:", () -> String.format("%.2f | %.2f", rrUnit.getSlewAngle(), rrUnit.getSlewTargetAngle()));
+        swerveTab.addString("LF Slew Angle:", () -> String.format("%.2f | %.2f | %.5f", lfUnit.getSlewAngle(),
+                lfUnit.getSlewTargetAngle(), lfUnit.getRawSlewAngle()));
+        swerveTab.addString("LR Slew Angle:", () -> String.format("%.2f | %.2f | %.5f", lrUnit.getSlewAngle(),
+                lrUnit.getSlewTargetAngle(), lrUnit.getRawSlewAngle()));
+        swerveTab.addString("RF Slew Angle:", () -> String.format("%.2f | %.2f | %.5f", rfUnit.getSlewAngle(),
+                rfUnit.getSlewTargetAngle(), rfUnit.getRawSlewAngle()));
+        swerveTab.addString("RR Slew Angle:", () -> String.format("%.2f | %.2f | %.5f", rrUnit.getSlewAngle(),
+                rrUnit.getSlewTargetAngle(), rrUnit.getRawSlewAngle()));
     }
 
 }

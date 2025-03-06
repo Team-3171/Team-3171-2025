@@ -22,34 +22,30 @@ import frc.team3171.models.ShooterShot;
 public interface RobotProperties {
 
         /** Debug Options **/
-        public static final boolean DEBUG = false;
+        public static final boolean DEBUG = true;
         public static final boolean SWERVE_DIRECTION_DEBUG = false;
         public static final String PID_LOG_ADDRESS = "10.31.71.202";
 
         /** Drive Variables **/
-        public static final boolean FIELD_ORIENTED_SWERVE = true;
+        public static final boolean FIELD_ORIENTED_SWERVE = false;
         public static final double JOYSTICK_DEADZONE = .08;
         public static final double MAX_DRIVE_SPEED = .85, MAX_ROTATION_SPEED = .6;
-        public static final boolean PINWHEEL_ZERO_ORIENTATION = true;
-        public static final boolean SWERVE_UNIT_ORIENTATION_OPTIMIZATION = true;
+        public static final boolean PINWHEEL_ZERO_ORIENTATION = false;
+        public static final boolean SWERVE_UNIT_ORIENTATION_OPTIMIZATION = false;
 
         /** Swerve Unit Configuration **/
-        public static final SwerveUnitConfig lf_Unit_Config = new SwerveUnitConfigBuilder(2, 3, 3).build();
-        public static final SwerveUnitConfig lr_Unit_Config = new SwerveUnitConfigBuilder(4, 5, 1).build();
-        public static final SwerveUnitConfig rf_Unit_Config = new SwerveUnitConfigBuilder(6, 7, 2).build();
-        public static final SwerveUnitConfig rr_Unit_Config = new SwerveUnitConfigBuilder(8, 9, 0).build();
+        public static final SwerveUnitConfig lf_Unit_Config = new SwerveUnitConfigBuilder(1, 2, 3).build();
+        public static final SwerveUnitConfig lr_Unit_Config = new SwerveUnitConfigBuilder(5, 6, 2).build();
+        public static final SwerveUnitConfig rf_Unit_Config = new SwerveUnitConfigBuilder(3, 4, 1).build();
+        public static final SwerveUnitConfig rr_Unit_Config = new SwerveUnitConfigBuilder(7, 8, 0).build();
 
         /** CAN ID Properties **/
         public static final int GYRO_CAN_ID = 10;
-        public static final int LOWER_SHOOTER_CAN_ID = 17, UPPER_SHOOTER_CAN_ID = 16, SHOOTER_TILT_CAN_ID = 15;
-        public static final int LOWER_FEEDER_MASTER_CAN_ID = 11, LOWER_FEEDER_FOLLOWER_CAN_ID = 12;
-        public static final int UPPER_FEEDER_MASTER_CAN_ID = 13, UPPER_FEEDER_FOLLOWER_CAN_ID = 14;
-        public static final int LEFT_ACUATOR_CAN_ID = 18, RIGHT_ACUATOR_CAN_ID = 19;
+        public static final int LEADER_SHOOTER_CAN_ID = 9, FOLLOWER_SHOOTER_CAN_ID = 10;
 
         /** CAN ID Properties **/
-        public static final int ELEVATOR_ONE_CAN_ID = 24, ELEVATOR_TWO_CAN_ID = 23;
-        public static final int PCM_CAN_ID = 2;
-        public static final int TILTY_MAGOO_CAN_ID = 5;
+        public static final int ELEVATOR_ONE_CAN_ID = 11, ELEVATOR_TWO_CAN_ID = 12;
+        public static final int PCM_CAN_ID = 21;
 
         /** Pneumatic Channels **/
         public static final int PICKUP_FORWARD_CHANNEL = 0, PICKUP_REVERSE_CHANNEL = 1;
@@ -57,16 +53,12 @@ public interface RobotProperties {
 
         /** CAN BUS Properties **/
         public static final String GYRO_CAN_BUS = "canivore";
-        public static final String ELEVATOR_ONE_CAN_BUS = "canivore", ELEVATOR_TWO_CAN_BUS = "canivore";
 
         /** Inversion Properties **/
         public static final boolean ELEVATOR_INVERTED = true;
-        public static final boolean LEFT_ACUATOR_INVERTED = true, RIGHT_ACUATOR_INVERTED = true;
-        public static final boolean PICKUP_INVERTED = false, PICKUPTILT_INVERTED = true;
 
         /** Shooter Variables **/
-        public static final boolean LOWER_SHOOTER_INVERTED = true, UPPER_SHOOTER_INVERTED = true,
-                        SHOOTER_TILT_INVERTED = false;
+        public static final boolean SHOOTER_INVERTED = true;
         public static final double SHOOTER_TILT_ALLOWED_DEVIATION = 3; // Shooter Tilt Accuracy Settings
         public static final double SHOOTER_ALLOWED_PERCENT_ERROR = .05; // Shooter Veloctity Accuracy Settings
         public static final double SHOOTER_DESIRED_AT_SPEED_TIME = .75; // Shooter Veloctity Time Window Settings
@@ -89,7 +81,9 @@ public interface RobotProperties {
 
         /** Sensor Channels **/
         public static int ELEVATOR_SENSOR_CHANNEL = 0;
-        public static int ELEVATOR_ENCODER_CHANNEL = 1;
+        public static int ELEVATOR_ENCODER_CHANNEL_A = 1, ELEVATOR_ENCODER_CHANNEL_B = 2;
+
+        public static int ELEVATOR_LOWER_CUTOFF = 300, ELEVATOR_UPPER_CUTOFF = 11500;
 
         /** PID Properties **/
         public static final double LIMELIGHT_KP = -.0175, LIMELIGHT_KI = -.0022, LIMELIGHT_KD = -.0022,
@@ -164,7 +158,7 @@ public interface RobotProperties {
         // public static final double SLEW_KP = -.005, SLEW_KI = -.0004, SLEW_KD = .035,
         // SLEW_PID_MIN = -1, SLEW_PID_MAX = 1;
         public static final double SLEW_KP = -.015, SLEW_KI = -0.002, SLEW_KD = .003, SLEW_PID_MIN = -.6,
-                        SLEW_PID_MAX = .75;
+                        SLEW_PID_MAX = .6;
         public static final double SHOOTER_KP = .00025, SHOOTER_KI = .0004, SHOOTER_KD = -.002, SHOOTER_MIN = -1,
                         SHOOTER_MAX = 1;
         // public static final double TILT_KP = .02, TILT_KI = .0005, TILT_KD = -.02,

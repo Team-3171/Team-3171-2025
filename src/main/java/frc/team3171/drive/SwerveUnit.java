@@ -71,6 +71,7 @@ public class SwerveUnit implements RobotProperties {
 
         // Init the absolute position encoder used for the slew angle
         absoluteEncoder = new AnalogEncoder(swerveUnitConfig.getAbsoluteEncoderID());
+        absoluteEncoder.setInverted(true);
 
         // Init the queue for pid data, if enabled
         slewPIDData = swerveUnitConfig.isLogPIDData() ? new ConcurrentLinkedQueue<String>() : null;
@@ -175,6 +176,10 @@ public class SwerveUnit implements RobotProperties {
      */
     public double getIntegratedEncoderVelocity() {
         return relativeDriveEncoder != null ? relativeDriveEncoder.getVelocity() : 0;
+    }
+
+    public double getRawSlewAngle() {
+        return absoluteEncoder.get();
     }
 
     /**

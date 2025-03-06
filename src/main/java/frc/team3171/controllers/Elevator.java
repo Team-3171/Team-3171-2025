@@ -9,6 +9,8 @@ import java.util.concurrent.locks.ReentrantLock;
 // FRC Imports
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
+import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.DigitalInput;
 
@@ -22,7 +24,8 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 
 // Team 3171 Imports
 import frc.robot.RobotProperties;
-import frc.team3171.sensors.RevEncoder;
+import frc.team3171.sensors.RevEncoderAbsolute;
+import frc.team3171.sensors.RevEncoderRelative;
 import frc.team3171.sensors.ThreadedPIDController;
 
 /**
@@ -32,7 +35,7 @@ public class Elevator implements RobotProperties {
 
     // Elevator Motors
     private final SparkMax elevatorMotor, elevatorFollower;
-    private final RevEncoder elevatorEncoder;
+    private final RevEncoderRelative elevatorEncoder;
 
     // PID Controller
     private final ThreadedPIDController elevatorPIDController;
@@ -64,8 +67,8 @@ public class Elevator implements RobotProperties {
                 PersistMode.kPersistParameters);
 
         // Elevator encoder init
-        elevatorEncoder = new RevEncoder(ELEVATOR_ENCODER_CHANNEL);
-        // elevatorEncoder.reset();
+        elevatorEncoder = new RevEncoderRelative(ELEVATOR_ENCODER_CHANNEL_A, ELEVATOR_ENCODER_CHANNEL_B);
+        elevatorEncoder.reset();
 
         elevatorPIDController = new ThreadedPIDController(elevatorEncoder, ELEVATOR_KP, ELEVATOR_KI, ELEVATOR_KD,
                 ELEVATOR_PID_MIN, ELEVATOR_PID_MAX, false);
@@ -213,6 +216,21 @@ public class Elevator implements RobotProperties {
     public void disable() {
         elevatorPIDController.disablePID();
         elevatorMotor.disable();
+    }
+
+    public void shuffleboardInit(final String tabName) {
+        ShuffleboardTab shooterTab = Shuffleboard.getTab(tabName);
+
+        // shooterTab.addBoolean("Shooter At Speed:", () ->
+        // isBothShootersAtVelocity(SHOOTER_TILT_ALLOWED_DEVIATION));
+        shooterTab.addString("Elevator Position:",
+                () -> String.format("%.2f | %.2f", getElevatorPosition(), getElevatorDesiredPoition()));
+        // shooterTab.addString("Upper Shooter RPM:", () -> String.format("%.2f | %.2f",
+        // getUpperShooterVelocity(), getUpperShooterTargetVelocity()));
+        // shooterTab.addString("Shooter Tilt:", () -> String.format("%.2f | %.2f",
+        // getShooterTilt(), getShooterTiltSetPosition()));
+        // shooterTab.addString("Shooter Tilt Raw:", () -> String.format("%.2f",
+        // getShooterTiltRaw()));
     }
 
 }
