@@ -24,6 +24,12 @@ import edu.wpi.first.wpilibj.DriverStation;
 
 // CTRE Imports
 import com.ctre.phoenix6.hardware.Pigeon2;
+import com.revrobotics.spark.SparkBase.PersistMode;
+import com.revrobotics.spark.SparkBase.ResetMode;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
+import com.revrobotics.spark.config.SparkMaxConfig;
 
 // Team 3171 Imports
 import frc.team3171.drive.SwerveDrive;
@@ -60,6 +66,9 @@ public class Robot extends TimedRobot implements RobotProperties {
   private DigitalInput feedSensor;
   private Elevator elevatorController;
 
+  // Climber Objects
+  private SparkMax climberMotor;
+
   // Auton Recorder
   private AutonRecorder autonRecorder;
   private ConcurrentLinkedQueue<AutonRecorderData> autonPlaybackQueue;
@@ -84,6 +93,7 @@ public class Robot extends TimedRobot implements RobotProperties {
 
   // Global Variables
   private XboxControllerState driveControllerState, operatorControllerState;
+  private double desiredElevatorPosition;
   private boolean robotOffGround;
   private volatile boolean fieldOrientationFlipped;
 
@@ -106,6 +116,12 @@ public class Robot extends TimedRobot implements RobotProperties {
 
     // Elevator Controller Init
     elevatorController = new Elevator();
+
+    // Init the climber motors
+    climberMotor = new SparkMax(ELEVATOR_LEADER_CAN_ID, MotorType.kBrushless);
+    SparkMaxConfig elevatorConfig = new SparkMaxConfig();
+    elevatorConfig.smartCurrentLimit(50).idleMode(IdleMode.kBrake).inverted(ELEVATOR_INVERTED);
+    climberMotor.configure(elevatorConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
     // PID Controllers
     gyroPIDController = new ThreadedPIDController(() -> Normalize_Gryo_Value(gyro.getAngle() + (fieldOrientationFlipped ? 180 : 0)), GYRO_KP, GYRO_KI, GYRO_KD, GYRO_MIN, GYRO_MAX,
@@ -148,6 +164,7 @@ public class Robot extends TimedRobot implements RobotProperties {
     // Global Variable Init
     driveControllerState = new XboxControllerState();
     operatorControllerState = new XboxControllerState();
+    desiredElevatorPosition = 0;
     fieldOrientationFlipped = false;
 
     // Edge Triggers Init
@@ -341,6 +358,7 @@ public class Robot extends TimedRobot implements RobotProperties {
     swerveDrive.disable();
     gyroPIDController.disablePID();
     elevatorController.disable();
+    climberMotor.disable();
 
     // Once auton recording is done, save the data to a file, if there is any
     if (saveNewAuton) {
@@ -376,6 +394,8 @@ public class Robot extends TimedRobot implements RobotProperties {
     swerveDrive.driveInit();
     gyroPIDController.enablePID();
     gyroPIDController.updateSensorLockValue();
+
+    desiredElevatorPosition = 0;
 
     // Edge Triggers reset
     zeroEdgeTrigger = false;
@@ -456,28 +476,36 @@ public class Robot extends TimedRobot implements RobotProperties {
 
   private void operatorControlsPeriodic(final XboxControllerState operatorControllerState, final double gyroValue) {
     // Get the needed joystick values after calculating the deadzones
-    // final double leftStickY = Deadzone_With_Map(JOYSTICK_DEADZONE, -operatorControllerState.getLeftY());
+    final double leftStickY = Deadzone_With_Map(JOYSTICK_DEADZONE, -operatorControllerState.getLeftY(), -.5, .5);
 
     // Get controls
-    // final boolean button_Pickup = operatorControllerState.getRightTriggerAxis() > .02;
-    // final boolean button_Reverse_Feed = operatorControllerState.getLeftTriggerAxis() > .02;
-    final boolean button_run_feed = operatorControllerState.getBButton();
-    final boolean button_elevator_down = operatorControllerState.getAButton();
-    // final boolean button_Far_Shot = operatorControllerState.getXButton();
-    final boolean button_elevator_up = operatorControllerState.getYButton();
-    // final boolean button_Shooter = button_Short_Shot || button_Normal_Shot || button_Far_Shot || button_Yeet_Shot;
+    final boolean button_run_feed = operatorControllerState.getLeftTriggerAxis() > .1;
+    final boolean button_run_feed_timed = operatorControllerState.getRightTriggerAxis() > .1;
+    final boolean button_elevator_pos_one = operatorControllerState.getAButton();
+    final boolean button_elevator_pos_two = operatorControllerState.getBButton();
+    final boolean button_elevator_pos_three = operatorControllerState.getYButton();
+    final boolean button_elevator_pos_four = operatorControllerState.getXButton();
 
     // Elevator Controls
-    if (button_elevator_down) {
-      elevatorController.setElevatorSpeed(-.2, ELEVATOR_LOWER_CUTOFF, ELEVATOR_UPPER_CUTOFF);
-    } else if (button_elevator_up) {
-      elevatorController.setElevatorSpeed(.25, ELEVATOR_LOWER_CUTOFF, ELEVATOR_UPPER_CUTOFF);
+    if (button_elevator_pos_one) {
+      desiredElevatorPosition = 0;
+    } else if (button_elevator_pos_two) {
+      desiredElevatorPosition = 2000;
+    } else if (button_elevator_pos_three) {
+      desiredElevatorPosition = 6000;
+    } else if (button_elevator_pos_four) {
+      desiredElevatorPosition = 10000;
+    } else if (leftStickY > 0) {
+      desiredElevatorPosition = elevatorController.getElevatorPosition();
+      elevatorController.setElevatorSpeed(leftStickY, ELEVATOR_LOWER_CUTOFF, ELEVATOR_UPPER_CUTOFF);
     } else {
-      elevatorController.setElevatorSpeed(0);
+      elevatorController.setElevatorPosition(desiredElevatorPosition, ELEVATOR_LOWER_CUTOFF, ELEVATOR_UPPER_CUTOFF);
     }
 
     // Feed Controls
     if (button_run_feed) {
+      elevatorController.setFeederSpeed(.2);
+    } else if (button_run_feed_timed) {
       elevatorController.setFeederSpeed(.2, 3);
     } else {
       elevatorController.setFeederSpeed(0);

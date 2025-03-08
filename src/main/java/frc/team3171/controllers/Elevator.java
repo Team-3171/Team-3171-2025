@@ -69,7 +69,7 @@ public class Elevator implements RobotProperties {
         // Init the feeder motors
         feedLeaderMotor = new SparkMax(FEED_LEADER_CAN_ID, MotorType.kBrushless);
         SparkMaxConfig lowerShooterConfig = new SparkMaxConfig();
-        lowerShooterConfig.smartCurrentLimit(50).idleMode(IdleMode.kBrake).inverted(SHOOTER_INVERTED);
+        lowerShooterConfig.smartCurrentLimit(50).idleMode(IdleMode.kBrake).inverted(FEEDER_INVERTED);
         feedLeaderMotor.configure(lowerShooterConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
         // Init the slave motors

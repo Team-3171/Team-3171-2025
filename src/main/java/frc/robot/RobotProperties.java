@@ -53,7 +53,7 @@ public interface RobotProperties {
 
         /** Inversion Properties **/
         public static final boolean ELEVATOR_INVERTED = true;
-        public static final boolean SHOOTER_INVERTED = true;
+        public static final boolean FEEDER_INVERTED = true;
 
         /** Shooter Variables **/
         public static final double SHOOTER_TILT_ALLOWED_DEVIATION = 3; // Shooter Tilt Accuracy Settings
