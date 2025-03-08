@@ -107,6 +107,7 @@ public class Robot extends TimedRobot implements RobotProperties {
   // Edge Triggers
   private boolean zeroEdgeTrigger;
   private boolean elevatorPositionEdgeTrigger;
+  private boolean feederEdgeTrigger;
 
   @Override
   public void robotInit() {
@@ -183,6 +184,7 @@ public class Robot extends TimedRobot implements RobotProperties {
     // Edge Triggers Init
     zeroEdgeTrigger = false;
     elevatorPositionEdgeTrigger = false;
+    feederEdgeTrigger = false;
 
     shuffleboardInit();
 
@@ -417,6 +419,7 @@ public class Robot extends TimedRobot implements RobotProperties {
     // Edge Triggers reset
     zeroEdgeTrigger = false;
     elevatorPositionEdgeTrigger = false;
+    feederEdgeTrigger = false;
   }
 
   private void driveControlsPeriodic(final XboxControllerState driveControllerState, final double gyroValue) {
@@ -543,11 +546,12 @@ public class Robot extends TimedRobot implements RobotProperties {
       elevatorController.setFeederSpeed(-.5);
     } else if (button_run_feed_forward) {
       elevatorController.setFeederSpeed(.5);
-    } else if (button_run_feed_auto) {
+    } else if (button_run_feed_auto && !feederEdgeTrigger) {
       elevatorController.feedUntilClear(.5, feedSensor, 5);
     } else {
       elevatorController.setFeederSpeed(0);
     }
+    feederEdgeTrigger = button_run_feed_auto;
 
   }
 
