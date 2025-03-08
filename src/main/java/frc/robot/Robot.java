@@ -106,6 +106,7 @@ public class Robot extends TimedRobot implements RobotProperties {
 
   // Edge Triggers
   private boolean zeroEdgeTrigger;
+  private boolean elevatorPositionEdgeTrigger;
 
   @Override
   public void robotInit() {
@@ -181,6 +182,7 @@ public class Robot extends TimedRobot implements RobotProperties {
 
     // Edge Triggers Init
     zeroEdgeTrigger = false;
+    elevatorPositionEdgeTrigger = false;
 
     shuffleboardInit();
 
@@ -414,6 +416,7 @@ public class Robot extends TimedRobot implements RobotProperties {
 
     // Edge Triggers reset
     zeroEdgeTrigger = false;
+    elevatorPositionEdgeTrigger = false;
   }
 
   private void driveControlsPeriodic(final XboxControllerState driveControllerState, final double gyroValue) {
@@ -481,14 +484,16 @@ public class Robot extends TimedRobot implements RobotProperties {
       swerveDrive.drive(fieldCorrectedAngle, leftStickMagnitude, FIELD_ORIENTED_SWERVE ? (closeEnough ? 0 : gyroPIDController.getPIDValue()) : 0, boostMode);
     }
 
-    // Pickup Controls
-    final boolean pickupRetract = driveControllerState.getLeftBumper();
-    final boolean pickupExtend = driveControllerState.getRightBumper();
+    // Climber Controls
+    final boolean button_climber_down = driveControllerState.getLeftBumper();
+    final boolean button_climber_up = driveControllerState.getRightBumper();
 
-    if (pickupRetract) {
-      pickup.retract();
-    } else if (pickupExtend) {
-      pickup.extend();
+    if (button_climber_down) {
+      climberMotor.set(.75);
+    } else if (button_climber_up) {
+      climberMotor.set(-.75);
+    } else {
+      climberMotor.set(0);
     }
 
   }
@@ -498,25 +503,31 @@ public class Robot extends TimedRobot implements RobotProperties {
     final double leftStickY = Deadzone_With_Map(JOYSTICK_DEADZONE, -operatorControllerState.getLeftY(), -1, 1);
 
     // Get controls
+    final boolean button_elevator_feed = operatorControllerState.getLeftBumper();
     final boolean button_elevator_pos_one = operatorControllerState.getAButton();
     final boolean button_elevator_pos_two = operatorControllerState.getBButton();
     final boolean button_elevator_pos_three = operatorControllerState.getYButton();
     final boolean button_elevator_pos_four = operatorControllerState.getXButton();
 
-    final boolean button_run_feed = operatorControllerState.getLeftTriggerAxis() > .1;
-    final boolean button_run_feed_timed = operatorControllerState.getRightTriggerAxis() > .1;
-
-    final boolean button_climber_down = operatorControllerState.getRightBumper();
-    final boolean button_climber_up = operatorControllerState.getLeftBumper();
+    final boolean button_run_feed_reverse = operatorControllerState.getLeftTriggerAxis() > .1;
+    final boolean button_run_feed_forward = operatorControllerState.getRightTriggerAxis() > .1;
+    final boolean button_run_feed_auto = operatorControllerState.getRightBumper();
 
     // Elevator Controls
-    if (button_elevator_pos_one) {
-      desiredElevatorPosition = 0;
-    } else if (button_elevator_pos_two) {
+    if (button_elevator_feed && !elevatorPositionEdgeTrigger) {
+      pickup.retract();
       desiredElevatorPosition = 2000;
-    } else if (button_elevator_pos_three) {
+    } else if (button_elevator_pos_one && !elevatorPositionEdgeTrigger) {
+      pickup.extend();
+      desiredElevatorPosition = 0;
+    } else if (button_elevator_pos_two && !elevatorPositionEdgeTrigger) {
+      pickup.extend();
+      desiredElevatorPosition = 2000;
+    } else if (button_elevator_pos_three && !elevatorPositionEdgeTrigger) {
+      pickup.extend();
       desiredElevatorPosition = 6000;
-    } else if (button_elevator_pos_four) {
+    } else if (button_elevator_pos_four && !elevatorPositionEdgeTrigger) {
+      pickup.extend();
       desiredElevatorPosition = 10000;
     } else if (Math.abs(leftStickY) > 0) {
       desiredElevatorPosition = elevatorController.getElevatorPosition();
@@ -525,24 +536,19 @@ public class Robot extends TimedRobot implements RobotProperties {
       elevatorController.setElevatorSpeed(0);
       // elevatorController.setElevatorPosition(desiredElevatorPosition, ELEVATOR_LOWER_CUTOFF, ELEVATOR_UPPER_CUTOFF);
     }
+    elevatorPositionEdgeTrigger = button_elevator_feed || button_elevator_pos_one || button_elevator_pos_two || button_elevator_pos_three || button_elevator_pos_four;
 
     // Feed Controls
-    if (button_run_feed) {
-      elevatorController.setFeederSpeed(.2);
-    } else if (button_run_feed_timed) {
-      elevatorController.setFeederSpeed(.2, 3);
+    if (button_run_feed_reverse) {
+      elevatorController.setFeederSpeed(-.5);
+    } else if (button_run_feed_forward) {
+      elevatorController.setFeederSpeed(.5);
+    } else if (button_run_feed_auto) {
+      elevatorController.feedUntilClear(.5, feedSensor, 5);
     } else {
       elevatorController.setFeederSpeed(0);
     }
 
-    // Climber Controls
-    if (button_climber_down) {
-      climberMotor.set(.8);
-    } else if (button_climber_up) {
-      climberMotor.set(-.8);
-    } else {
-      climberMotor.set(0);
-    }
   }
 
 }
