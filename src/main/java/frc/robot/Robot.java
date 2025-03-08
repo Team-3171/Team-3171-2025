@@ -479,12 +479,16 @@ public class Robot extends TimedRobot implements RobotProperties {
     final double leftStickY = Deadzone_With_Map(JOYSTICK_DEADZONE, -operatorControllerState.getLeftY(), -.5, .5);
 
     // Get controls
-    final boolean button_run_feed = operatorControllerState.getLeftTriggerAxis() > .1;
-    final boolean button_run_feed_timed = operatorControllerState.getRightTriggerAxis() > .1;
     final boolean button_elevator_pos_one = operatorControllerState.getAButton();
     final boolean button_elevator_pos_two = operatorControllerState.getBButton();
     final boolean button_elevator_pos_three = operatorControllerState.getYButton();
     final boolean button_elevator_pos_four = operatorControllerState.getXButton();
+
+    final boolean button_run_feed = operatorControllerState.getLeftTriggerAxis() > .1;
+    final boolean button_run_feed_timed = operatorControllerState.getRightTriggerAxis() > .1;
+
+    final boolean button_climber_down = operatorControllerState.getRightBumper();
+    final boolean button_climber_up = operatorControllerState.getLeftBumper();
 
     // Elevator Controls
     if (button_elevator_pos_one) {
@@ -509,6 +513,15 @@ public class Robot extends TimedRobot implements RobotProperties {
       elevatorController.setFeederSpeed(.2, 3);
     } else {
       elevatorController.setFeederSpeed(0);
+    }
+
+    // Climber Controls
+    if (button_climber_down) {
+      climberMotor.set(.8);
+    } else if (button_climber_up) {
+      climberMotor.set(-.8);
+    } else {
+      climberMotor.set(0);
     }
   }
 
