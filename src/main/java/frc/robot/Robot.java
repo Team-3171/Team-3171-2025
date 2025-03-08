@@ -12,6 +12,7 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj.PneumaticsModuleType;
 import edu.wpi.first.wpilibj.shuffleboard.BuiltInWidgets;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
@@ -19,6 +20,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.AddressableLED;
 import edu.wpi.first.wpilibj.AddressableLEDBuffer;
+import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DriverStation;
 
@@ -35,6 +37,7 @@ import com.revrobotics.spark.config.SparkMaxConfig;
 import frc.team3171.drive.SwerveDrive;
 import frc.team3171.models.PhotonAprilTagTarget;
 import frc.team3171.models.XboxControllerState;
+import frc.team3171.pnuematics.DoublePistonController;
 import frc.team3171.auton.AutonRecorder;
 import frc.team3171.auton.AutonRecorderData;
 import frc.team3171.controllers.Elevator;
@@ -68,6 +71,10 @@ public class Robot extends TimedRobot implements RobotProperties {
 
   // Climber Objects
   private SparkMax climberMotor;
+
+  // Pneumatics
+  private DoublePistonController pickup;
+  private Compressor compressor;
 
   // Auton Recorder
   private AutonRecorder autonRecorder;
@@ -118,10 +125,15 @@ public class Robot extends TimedRobot implements RobotProperties {
     elevatorController = new Elevator();
 
     // Init the climber motors
-    climberMotor = new SparkMax(ELEVATOR_LEADER_CAN_ID, MotorType.kBrushless);
-    SparkMaxConfig elevatorConfig = new SparkMaxConfig();
-    elevatorConfig.smartCurrentLimit(50).idleMode(IdleMode.kBrake).inverted(ELEVATOR_INVERTED);
-    climberMotor.configure(elevatorConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+    climberMotor = new SparkMax(CLIMBER_CAN_ID, MotorType.kBrushless);
+    SparkMaxConfig climberConfig = new SparkMaxConfig();
+    climberConfig.smartCurrentLimit(50).idleMode(IdleMode.kBrake).inverted(CLIMBER_INVERTED);
+    climberMotor.configure(climberConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+
+    // Pneumatics Init
+    pickup = new DoublePistonController(PCM_CAN_ID, PneumaticsModuleType.REVPH, PICKUP_FORWARD_CHANNEL, PICKUP_REVERSE_CHANNEL, PICKUP_INVERTED);
+    compressor = new Compressor(PCM_CAN_ID, PneumaticsModuleType.REVPH);
+    compressor.enableAnalog(MIN_PRESSURE, MAX_PRESSURE);
 
     // PID Controllers
     gyroPIDController = new ThreadedPIDController(() -> Normalize_Gryo_Value(gyro.getAngle() + (fieldOrientationFlipped ? 180 : 0)), GYRO_KP, GYRO_KI, GYRO_KD, GYRO_MIN, GYRO_MAX,
@@ -196,6 +208,8 @@ public class Robot extends TimedRobot implements RobotProperties {
     periodicTab.addString("Gyro", () -> String.format("%.2f\u00B0 | %.2f\u00B0", gyroPIDController.getSensorValue(),
         gyroPIDController.getSensorLockValue()));
     periodicTab.addBoolean("Off Ground:", () -> robotOffGround);
+    periodicTab.addBoolean("Line Sensor:", () -> !feedSensor.get());
+    periodicTab.addString("Air Pressure", () -> String.format("%.2f PSI", compressor.getPressure()));
 
     // Controller Values
     swerveDrive.shuffleboardInit("Swerve Debug");
@@ -359,6 +373,7 @@ public class Robot extends TimedRobot implements RobotProperties {
     gyroPIDController.disablePID();
     elevatorController.disable();
     climberMotor.disable();
+    pickup.disable();
 
     // Once auton recording is done, save the data to a file, if there is any
     if (saveNewAuton) {
@@ -433,26 +448,22 @@ public class Robot extends TimedRobot implements RobotProperties {
       switch (DriverStation.getAlliance().get()) {
         case Red:
           // Target priority: 4, 3 w/ -5 offset, 5, 9 or 10
-          aprilTagTarget = visionController.getAllVisibleAprilTagsByPriority(new int[] { 4, 5, 9, 10 },
-              "FRONT_TARGETING_CAMERA", "REAR_TARGETING_CAMERA");
+          aprilTagTarget = visionController.getAllVisibleAprilTagsByPriority(new int[] { 4, 5, 9, 10 }, "FRONT_TARGETING_CAMERA", "REAR_TARGETING_CAMERA");
           offset = aprilTagTarget == null ? 0 : aprilTagTarget.getPHOTON_TRACKED_TARGET().getFiducialId() == 3 ? -5 : 0;
           break;
         default:
           // Target priority: 7, 8 w/ -5 offset, 6, 1 or 2
-          aprilTagTarget = visionController.getAllVisibleAprilTagsByPriority(new int[] { 7, 6, 1, 2 },
-              "FRONT_TARGETING_CAMERA", "REAR_TARGETING_CAMERA");
+          aprilTagTarget = visionController.getAllVisibleAprilTagsByPriority(new int[] { 7, 6, 1, 2 }, "FRONT_TARGETING_CAMERA", "REAR_TARGETING_CAMERA");
           offset = aprilTagTarget == null ? 0 : aprilTagTarget.getPHOTON_TRACKED_TARGET().getFiducialId() == 8 ? -5 : 0;
           break;
       }
 
       if (aprilTagTarget != null) {
         // Adjust the gyro lock to point torwards the target
-        gyroPIDController.updateSensorLockValueWithoutReset(
-            Normalize_Gryo_Value(gyroValue + aprilTagTarget.getPHOTON_TRACKED_TARGET().getYaw() + offset));
+        gyroPIDController.updateSensorLockValueWithoutReset(Normalize_Gryo_Value(gyroValue + aprilTagTarget.getPHOTON_TRACKED_TARGET().getYaw() + offset));
       }
 
-      swerveDrive.drive(fieldCorrectedAngle, leftStickMagnitude,
-          FIELD_ORIENTED_SWERVE ? gyroPIDController.getPIDValue() : 0, boostMode);
+      swerveDrive.drive(fieldCorrectedAngle, leftStickMagnitude, FIELD_ORIENTED_SWERVE ? gyroPIDController.getPIDValue() : 0, boostMode);
     } else if (pickupLocking) {
       // TODO Pickup Locking
       gyroPIDController.disablePID();
@@ -466,17 +477,25 @@ public class Robot extends TimedRobot implements RobotProperties {
         gyroPIDController.updateSensorLockValueWithoutReset(Normalize_Gryo_Value(driveControllerState.getPOV()));
       }
 
-      final boolean closeEnough = Math
-          .abs(Get_Gyro_Displacement(gyroValue, gyroPIDController.getSensorLockValue())) <= 1;
-      swerveDrive.drive(fieldCorrectedAngle, leftStickMagnitude,
-          FIELD_ORIENTED_SWERVE ? (closeEnough ? 0 : gyroPIDController.getPIDValue()) : 0, boostMode);
+      final boolean closeEnough = Math.abs(Get_Gyro_Displacement(gyroValue, gyroPIDController.getSensorLockValue())) <= 1;
+      swerveDrive.drive(fieldCorrectedAngle, leftStickMagnitude, FIELD_ORIENTED_SWERVE ? (closeEnough ? 0 : gyroPIDController.getPIDValue()) : 0, boostMode);
+    }
+
+    // Pickup Controls
+    final boolean pickupRetract = driveControllerState.getLeftBumper();
+    final boolean pickupExtend = driveControllerState.getRightBumper();
+
+    if (pickupRetract) {
+      pickup.retract();
+    } else if (pickupExtend) {
+      pickup.extend();
     }
 
   }
 
   private void operatorControlsPeriodic(final XboxControllerState operatorControllerState, final double gyroValue) {
     // Get the needed joystick values after calculating the deadzones
-    final double leftStickY = Deadzone_With_Map(JOYSTICK_DEADZONE, -operatorControllerState.getLeftY(), -.5, .5);
+    final double leftStickY = Deadzone_With_Map(JOYSTICK_DEADZONE, -operatorControllerState.getLeftY(), -1, 1);
 
     // Get controls
     final boolean button_elevator_pos_one = operatorControllerState.getAButton();
@@ -499,11 +518,12 @@ public class Robot extends TimedRobot implements RobotProperties {
       desiredElevatorPosition = 6000;
     } else if (button_elevator_pos_four) {
       desiredElevatorPosition = 10000;
-    } else if (leftStickY > 0) {
+    } else if (Math.abs(leftStickY) > 0) {
       desiredElevatorPosition = elevatorController.getElevatorPosition();
-      elevatorController.setElevatorSpeed(leftStickY, ELEVATOR_LOWER_CUTOFF, ELEVATOR_UPPER_CUTOFF);
+      elevatorController.setElevatorSpeed(leftStickY);
     } else {
-      elevatorController.setElevatorPosition(desiredElevatorPosition, ELEVATOR_LOWER_CUTOFF, ELEVATOR_UPPER_CUTOFF);
+      elevatorController.setElevatorSpeed(0);
+      // elevatorController.setElevatorPosition(desiredElevatorPosition, ELEVATOR_LOWER_CUTOFF, ELEVATOR_UPPER_CUTOFF);
     }
 
     // Feed Controls

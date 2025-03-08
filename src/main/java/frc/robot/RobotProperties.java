@@ -26,11 +26,11 @@ public interface RobotProperties {
         public static final String PID_LOG_ADDRESS = "10.31.71.202";
 
         /** Drive Variables **/
-        public static final boolean FIELD_ORIENTED_SWERVE = false;
+        public static final boolean FIELD_ORIENTED_SWERVE = true;
         public static final double JOYSTICK_DEADZONE = .08;
         public static final double MAX_DRIVE_SPEED = .85, MAX_ROTATION_SPEED = .6;
         public static final boolean PINWHEEL_ZERO_ORIENTATION = false;
-        public static final boolean SWERVE_UNIT_ORIENTATION_OPTIMIZATION = false;
+        public static final boolean SWERVE_UNIT_ORIENTATION_OPTIMIZATION = true;
 
         /** Swerve Unit Configuration **/
         public static final SwerveUnitConfig lf_Unit_Config = new SwerveUnitConfigBuilder(1, 2, 3).setAbsoluteEncoderInverted(true).build();
@@ -42,18 +42,20 @@ public interface RobotProperties {
         public static final int GYRO_CAN_ID = 10;
         public static final int FEED_LEADER_CAN_ID = 9, FEED_FOLLOWER_CAN_ID = 10;
         public static final int ELEVATOR_LEADER_CAN_ID = 11, ELEVATOR_FOLLOWER_CAN_ID = 12;
+        public static final int CLIMBER_CAN_ID = 13;
         public static final int PCM_CAN_ID = 21;
 
         /** Pneumatic Channels **/
         public static final int PICKUP_FORWARD_CHANNEL = 0, PICKUP_REVERSE_CHANNEL = 1;
-        public static final int PICKUPTILT_FORWARD_CHANNEL = 4, PICKUPTILT_REVERSE_CHANNEL = 5;
 
         /** CAN BUS Properties **/
         public static final String GYRO_CAN_BUS = "canivore";
 
         /** Inversion Properties **/
+        public static final boolean CLIMBER_INVERTED = false;
         public static final boolean ELEVATOR_INVERTED = true;
         public static final boolean FEEDER_INVERTED = true;
+        public static final boolean PICKUP_INVERTED = false;
 
         /** Shooter Variables **/
         public static final double SHOOTER_TILT_ALLOWED_DEVIATION = 3; // Shooter Tilt Accuracy Settings
@@ -73,8 +75,8 @@ public interface RobotProperties {
         public static final double MIN_PRESSURE = 95, MAX_PRESSURE = 110;
 
         /** Sensor Channels **/
-        public static int ELEVATOR_LINE_SENSOR_CHANNEL = 0;
-        public static int ELEVATOR_ENCODER_CHANNEL_A = 1, ELEVATOR_ENCODER_CHANNEL_B = 2;
+        public static int ELEVATOR_LINE_SENSOR_CHANNEL = 2;
+        public static int ELEVATOR_ENCODER_CHANNEL_A = 0, ELEVATOR_ENCODER_CHANNEL_B = 1;
 
         /** Elevator Properties **/
         public static int ELEVATOR_LOWER_CUTOFF = 300, ELEVATOR_UPPER_CUTOFF = 11500;
@@ -124,7 +126,7 @@ public interface RobotProperties {
         public static final double SLEW_KP = -.015, SLEW_KI = -0.002, SLEW_KD = .003, SLEW_PID_MIN = -.6, SLEW_PID_MAX = .6;
         public static final double SHOOTER_KP = .00025, SHOOTER_KI = .0004, SHOOTER_KD = -.002, SHOOTER_MIN = -1, SHOOTER_MAX = 1;
         public static final double LIMELIGHT_KP = -.0175, LIMELIGHT_KI = -.0022, LIMELIGHT_KD = -.0022, LIMELIGHT_MIN = -.5, LIMELIGHT_MAX = .5;
-        public static final double ELEVATOR_KP = .6, ELEVATOR_KI = .1, ELEVATOR_KD = 0, ELEVATOR_KF = 0, ELEVATOR_PID_MIN = -.25, ELEVATOR_PID_MAX = .4;
+        public static final double ELEVATOR_KP = -.6, ELEVATOR_KI = 0, ELEVATOR_KD = 0, ELEVATOR_KF = 0, ELEVATOR_PID_MIN = -5, ELEVATOR_PID_MAX = .75;
 
         /** Auton Mode Constants **/
         public static final String DEFAULT_AUTON = "Disabled";
