@@ -11,48 +11,34 @@ public class SwerveUnitConfig {
 
     /**
      * Constructor
-     * 
+     *
      * @param DRIVE_MOTOR_TYPE
-     *                                  The motor type of the
-     *                                  {@link MotorController} used to control the
-     *                                  drive motor.
+     *            The motor type of the {@link MotorController} used to control the drive motor.
      * @param DRIVE_MOTOR_IDa
-     *                                  The CAN ID of the {@link MotorController}
-     *                                  used to control the drive motor.
+     *            The CAN ID of the {@link MotorController} used to control the drive motor.
      * @param DRIVE_MOTOR_INVERTED
-     *                                  Whether or not the direction of the drive
-     *                                  motor needs to be inverted.
-     * 
+     *            Whether or not the direction of the drive motor needs to be inverted.
+     *
      * @param SLEW_MOTOR_TYPE
-     *                                  The motor type of the
-     *                                  {@link MotorController} used to control the
-     *                                  slew motor.
+     *            The motor type of the {@link MotorController} used to control the slew motor.
      * @param SLEW_MOTOR_ID
-     *                                  The CAN ID of the {@link MotorController}
-     *                                  used to control the slew motor.
+     *            The CAN ID of the {@link MotorController} used to control the slew motor.
      * @param SLEW_MOTOR_INVERTED
-     *                                  Whether or not the direction of the slew
-     *                                  motor needs to be inverted.
-     * 
+     *            Whether or not the direction of the slew motor needs to be inverted.
+     *
      * @param ABSOLUTE_ENCODER_TYPE
-     *                                  The encoder type used to tell the positiion
-     *                                  of the wheel.
+     *            The encoder type used to tell the positiion of the wheel.
      * @param ABSOLUTE_ENCODER_ID
-     *                                  The CAN ID of the encoder used to tell the
-     *                                  positiion of the wheel.
+     *            The CAN ID of the encoder used to tell the positiion of the wheel.
      * @param ABSOLUTE_ENCODER_INVERTED
-     *                                  Whether or not the direction of the absolute
-     *                                  encoder needs to be inverted.
-     * 
+     *            Whether or not the direction of the absolute encoder needs to be inverted.
+     *
      * @param CANBUS
-     *                                  The {@link String} of the CAN bus that the
-     *                                  devices are located on. All three devices of
-     *                                  the unit should be
-     *                                  on the same bus.
-     * 
+     *            The {@link String} of the CAN bus that the devices are located on. All three devices of the unit should be
+     *            on the same bus.
+     *
      * @param LOG_PID_DATA
-     *                                  Whether or not to log the PID data from the
-     *                                  swerve unit.
+     *            Whether or not to log the PID data from the swerve unit.
      */
     private SwerveUnitConfig(final SwerveUnitConfigBuilder build) {
         this.DRIVE_MOTOR_ID = build.DRIVE_MOTOR_ID;
@@ -82,30 +68,23 @@ public class SwerveUnitConfig {
 
         /**
          * Constructor
-         * 
+         *
          * @param SLEW_MOTOR_TYPE
-         *                              The motor type of the {@link MotorController}
-         *                              used to control the slew motor.
+         *            The motor type of the {@link MotorController} used to control the slew motor.
          * @param SLEW_MOTOR_ID
-         *                              The CAN ID of the {@link MotorController} used
-         *                              to control the slew motor.
-         * 
+         *            The CAN ID of the {@link MotorController} used to control the slew motor.
+         *
          * @param DRIVE_MOTOR_TYPE
-         *                              The motor type of the {@link MotorController}
-         *                              used to control the drive motor.
+         *            The motor type of the {@link MotorController} used to control the drive motor.
          * @param DRIVE_MOTOR_ID
-         *                              The CAN ID of the {@link MotorController} used
-         *                              to control the drive motor.
-         * 
+         *            The CAN ID of the {@link MotorController} used to control the drive motor.
+         *
          * @param ABSOLUTE_ENCODER_TYPE
-         *                              The encoder type used to tell the positiion of
-         *                              the wheel.
+         *            The encoder type used to tell the positiion of the wheel.
          * @param ABSOLUTE_ENCODER_ID
-         *                              The CAN ID of the {@link MotorController} used
-         *                              to control the drive motor.
+         *            The CAN ID of the {@link MotorController} used to control the drive motor.
          */
-        public SwerveUnitConfigBuilder(final int DRIVE_MOTOR_ID, final int SLEW_MOTOR_ID,
-                final int ABSOLUTE_ENCODER_ID) {
+        public SwerveUnitConfigBuilder(final int DRIVE_MOTOR_ID, final int SLEW_MOTOR_ID, final int ABSOLUTE_ENCODER_ID) {
             this.DRIVE_MOTOR_ID = DRIVE_MOTOR_ID;
 
             this.SLEW_MOTOR_ID = SLEW_MOTOR_ID;
@@ -116,10 +95,9 @@ public class SwerveUnitConfig {
         /**
          *
          * @param driveMotorInverted
-         *                           Whether or not the direction of the drive motor
-         *                           needs to be inverted.
-         * @return The same {@link SwerveUnitConfigBuilder} with the specified parameter
-         *         updated.
+         *            Whether or not the direction of the drive motor needs to be inverted.
+         *
+         * @return The same {@link SwerveUnitConfigBuilder} with the specified parameter updated.
          */
         public SwerveUnitConfigBuilder setDriveMotorInverted(final boolean driveMotorInverted) {
             this.DRIVE_MOTOR_INVERTED = driveMotorInverted;
@@ -127,12 +105,11 @@ public class SwerveUnitConfig {
         }
 
         /**
-         * 
+         *
          * @param slewMotorInverted
-         *                          Whether or not the direction of the slew motor needs
-         *                          to be inverted.
-         * @return The same {@link SwerveUnitConfigBuilder} with the specified parameter
-         *         updated.
+         *            Whether or not the direction of the slew motor needs to be inverted.
+         *
+         * @return The same {@link SwerveUnitConfigBuilder} with the specified parameter updated.
          */
         public SwerveUnitConfigBuilder setSlewMotorInverted(final boolean slewMotorInverted) {
             this.SLEW_MOTOR_INVERTED = slewMotorInverted;
@@ -140,12 +117,11 @@ public class SwerveUnitConfig {
         }
 
         /**
-         * 
+         *
          * @param absoluteEncoderInverted
-         *                                Whether or not the direction of the absolute
-         *                                encoder needs to be inverted.
-         * @return The same {@link SwerveUnitConfigBuilder} with the specified parameter
-         *         updated.
+         *            Whether or not the direction of the absolute encoder needs to be inverted.
+         *
+         * @return The same {@link SwerveUnitConfigBuilder} with the specified parameter updated.
          */
         public SwerveUnitConfigBuilder setAbsoluteEncoderInverted(final boolean absoluteEncoderInverted) {
             this.ABSOLUTE_ENCODER_INVERTED = absoluteEncoderInverted;
@@ -153,13 +129,12 @@ public class SwerveUnitConfig {
         }
 
         /**
-         * 
+         *
          * @param canbus
-         *               The {@link String} of the CAN bus that the devices are located
-         *               on. All three devices of the unit should be
-         *               on the same bus.
-         * @return The same {@link SwerveUnitConfigBuilder} with the specified parameter
-         *         updated.
+         *            The {@link String} of the CAN bus that the devices are located on. All three devices of the unit should be
+         *            on the same bus.
+         *
+         * @return The same {@link SwerveUnitConfigBuilder} with the specified parameter updated.
          */
         public SwerveUnitConfigBuilder setCANBUS(final String canbus) {
             this.CANBUS = canbus;
@@ -167,9 +142,10 @@ public class SwerveUnitConfig {
         }
 
         /**
-         * 
+         *
          * @param logPIDData
-         *                   Whether or not to log the PID data from the swerve unit.
+         *            Whether or not to log the PID data from the swerve unit.
+         *
          * @return The same {@link SwerveUnitConfigBuilder} with the specified parameter
          *         updated.
          */
@@ -179,9 +155,8 @@ public class SwerveUnitConfig {
         }
 
         /**
-         * 
-         * @return A new instance of {@link SwerveUnitConfig} with the values set to the
-         *         specified values provided by the
+         *
+         * @return A new instance of {@link SwerveUnitConfig} with the values set to the specified values provided by the
          *         builder.
          */
         public SwerveUnitConfig build() {

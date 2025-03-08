@@ -7,7 +7,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import edu.wpi.first.wpilibj.motorcontrol.MotorController;
 import edu.wpi.first.wpilibj.AnalogEncoder;
 
-import com.ctre.phoenix6.hardware.TalonFX;
 // REV Imports
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkBase.PersistMode;
@@ -48,9 +47,9 @@ public class SwerveUnit implements RobotProperties {
 
     /**
      * Constructor
-     * 
+     *
      * @param driveInverted
-     *                      The config settings for the swerve unit.
+     *            The config settings for the swerve unit.
      */
     public SwerveUnit(final SwerveUnitConfig swerveUnitConfig) {
         // Init the drive motor
@@ -71,14 +70,13 @@ public class SwerveUnit implements RobotProperties {
 
         // Init the absolute position encoder used for the slew angle
         absoluteEncoder = new AnalogEncoder(swerveUnitConfig.getAbsoluteEncoderID());
-        absoluteEncoder.setInverted(true);
+        absoluteEncoder.setInverted(swerveUnitConfig.isAbsoluteEncoderInverted());
 
         // Init the queue for pid data, if enabled
         slewPIDData = swerveUnitConfig.isLogPIDData() ? new ConcurrentLinkedQueue<String>() : null;
 
         // Init the gyro PID controller
-        slewPIDController = new ThreadedPIDController(this::getSlewAngle, SLEW_KP, SLEW_KI, SLEW_KD, SLEW_PID_MIN,
-                SLEW_PID_MAX, false);
+        slewPIDController = new ThreadedPIDController(this::getSlewAngle, SLEW_KP, SLEW_KI, SLEW_KD, SLEW_PID_MIN, SLEW_PID_MAX, false);
         slewPIDController.setMinValue(-180);
         slewPIDController.setMaxValue(180);
         slewPIDController.start(20, true, slewPIDData);
@@ -89,21 +87,17 @@ public class SwerveUnit implements RobotProperties {
 
     /**
      * Sets the drive motor to the desired speed.
-     * 
+     *
      * @param speed
-     *              The speed, from -1.0 to 1.0, to set the drive motor to.
+     *            The speed, from -1.0 to 1.0, to set the drive motor to.
      */
     public void setDriveSpeed(final double speed) {
-        /*
-         * Sets the speed of the master TalonFX, and therefore it's followers, to the
-         * given value
-         */
         driveMotor.set(speed);
     }
 
     /**
      * Returns the current drive motor speed.
-     * 
+     *
      * @return The current drive motor speed, from -1.0 to 1.0.
      */
     public double getDriveSpeed() {
@@ -112,14 +106,10 @@ public class SwerveUnit implements RobotProperties {
 
     /**
      * Gets whether or not the direction of the drive motor is inverted.
-     * 
+     *
      * @return True, if the drive motor is inverted, false otherwise.
      */
     public boolean getDriveInverted() {
-        /*
-         * Gets whether or not the direction of the master TalonFX, and therefore it's
-         * followers, are inverted
-         */
         return driveMotor.configAccessor.getInverted();
     }
 
@@ -134,9 +124,9 @@ public class SwerveUnit implements RobotProperties {
 
     /**
      * Sets the slew motor to the desired angle.
-     * 
+     *
      * @param angle
-     *              The angle, from -180.0 to 180.0, to set the slew motor to.
+     *            The angle, from -180.0 to 180.0, to set the slew motor to.
      */
     public void updateSlewAngle(final double angle) {
         // Update the target angle of slew motor PID controller
@@ -146,9 +136,9 @@ public class SwerveUnit implements RobotProperties {
 
     /**
      * Sets the slew motor to the desired speed.
-     * 
+     *
      * @param speed
-     *              The speed, from -1.0 to 1.0, to set the slew motor to.
+     *            The speed, from -1.0 to 1.0, to set the slew motor to.
      */
     public void setSlewSpeed(final double speed) {
         slewMotor.set(speed);
@@ -156,7 +146,7 @@ public class SwerveUnit implements RobotProperties {
 
     /**
      * Returns the raw value of the {@link MotorController} integrated encoder.
-     * 
+     *
      * @return The raw value from the {@link MotorController} integrated encoder.
      */
     public double getIntegratedEncoderValue() {
@@ -164,13 +154,10 @@ public class SwerveUnit implements RobotProperties {
     }
 
     /**
-     * Returns the velocity of the {@link MotorController} integrated encoder. If
-     * the drive motor type is of
-     * {@link MOTOR_TYPE.CTRE}, then the encoder 2048 ticks per revolution and the
-     * return units of the velocity is in ticks
-     * per 100ms. If the drive motor is of {@link MOTOR_TYPE.REV} then it returns
-     * the RPM of the motor.
-     * 
+     * Returns the velocity of the {@link MotorController} integrated encoder. If the drive motor type is of
+     * {@link MOTOR_TYPE.CTRE}, then the encoder 2048 ticks per revolution and the return units of the velocity is in ticks
+     * per 100ms. If the drive motor is of {@link MOTOR_TYPE.REV} then it returns the RPM of the motor.
+     *
      * @return The velocity, in ticks per 100ms or RPM of the
      *         {@link MotorController} integrated encoder.
      */
@@ -184,7 +171,7 @@ public class SwerveUnit implements RobotProperties {
 
     /**
      * Returns the current position of the {@link CANCoder}.
-     * 
+     *
      * @return The current position, in degrees, from -180 to 180.
      */
     public double getSlewAngle() {
@@ -198,7 +185,7 @@ public class SwerveUnit implements RobotProperties {
 
     /**
      * Returns the current position of the {@link CANCoder}.
-     * 
+     *
      * @return The current position, in degrees, from -180 to 180.
      */
     public double getSlewTargetAngle() {
@@ -207,13 +194,12 @@ public class SwerveUnit implements RobotProperties {
 
     /**
      * Returns the current velocity of the {@link CANCoder}.
-     * 
+     *
      * @return The velocity, in degrees per second.
      */
     public double getSlewVelocity() {
         final double slewVelocity;
         // Get the absolute encoder value based on encoder type
-
         // Assumes the encoder is wired into the slew motor spark max
         slewVelocity = relativeSlewEncoder != null ? relativeSlewEncoder.getVelocity() : 0;
 
@@ -237,7 +223,7 @@ public class SwerveUnit implements RobotProperties {
     }
 
     /**
-     * 
+     *
      * @param slewOffset
      */
     public void zeroModule(final double slewOffset) {
@@ -250,14 +236,14 @@ public class SwerveUnit implements RobotProperties {
     }
 
     /**
-     * 
+     *
      */
     public void zeroModule() {
         zeroModule(0);
     }
 
     /**
-     * 
+     *
      * @return
      */
     public double getSlewOffset() {
@@ -265,7 +251,7 @@ public class SwerveUnit implements RobotProperties {
     }
 
     /**
-     * 
+     *
      * @param slewOffset
      */
     public void setSlewOffset(final double slewOffset) {
@@ -273,7 +259,7 @@ public class SwerveUnit implements RobotProperties {
     }
 
     /**
-     * 
+     *
      * @return
      */
     public ConcurrentLinkedQueue<String> getSlewPIDData() {

@@ -24,7 +24,6 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 
 // Team 3171 Imports
 import frc.robot.RobotProperties;
-import frc.team3171.sensors.RevEncoderAbsolute;
 import frc.team3171.sensors.RevEncoderRelative;
 import frc.team3171.sensors.ThreadedPIDController;
 
@@ -33,8 +32,11 @@ import frc.team3171.sensors.ThreadedPIDController;
  */
 public class Elevator implements RobotProperties {
 
-    // Elevator Motors
-    private final SparkMax elevatorMotor, elevatorFollower;
+    // Motor Controllers
+    private final SparkMax elevatorLeaderMotor, elevatorFollowerMotor;
+    private final SparkMax feedLeaderMotor, feedFollowerMotor;
+
+    // Sensors
     private final RevEncoderRelative elevatorEncoder;
 
     // PID Controller
@@ -50,62 +52,73 @@ public class Elevator implements RobotProperties {
     private final AtomicBoolean executorActive;
 
     /**
-     * 
+     *
      */
     public Elevator() {
-        // Init the master motor
-        elevatorMotor = new SparkMax(ELEVATOR_ONE_CAN_ID, MotorType.kBrushless);
+        // Init the elevator motors
+        elevatorLeaderMotor = new SparkMax(ELEVATOR_LEADER_CAN_ID, MotorType.kBrushless);
         SparkMaxConfig elevatorConfig = new SparkMaxConfig();
         elevatorConfig.smartCurrentLimit(50).idleMode(IdleMode.kBrake).inverted(ELEVATOR_INVERTED);
-        elevatorMotor.configure(elevatorConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+        elevatorLeaderMotor.configure(elevatorConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+
+        elevatorFollowerMotor = new SparkMax(ELEVATOR_FOLLOWER_CAN_ID, MotorType.kBrushless);
+        SparkMaxConfig elevatorFollowerConfig = new SparkMaxConfig();
+        elevatorConfig.smartCurrentLimit(50).idleMode(IdleMode.kBrake).follow(elevatorLeaderMotor, true);
+        elevatorFollowerMotor.configure(elevatorFollowerConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+
+        // Init the feeder motors
+        feedLeaderMotor = new SparkMax(FEED_LEADER_CAN_ID, MotorType.kBrushless);
+        SparkMaxConfig lowerShooterConfig = new SparkMaxConfig();
+        lowerShooterConfig.smartCurrentLimit(50).idleMode(IdleMode.kBrake).inverted(SHOOTER_INVERTED);
+        feedLeaderMotor.configure(lowerShooterConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
         // Init the slave motors
-        elevatorFollower = new SparkMax(ELEVATOR_TWO_CAN_ID, MotorType.kBrushless);
-        SparkMaxConfig elevatorFollowerConfig = new SparkMaxConfig();
-        elevatorConfig.smartCurrentLimit(50).idleMode(IdleMode.kBrake).follow(elevatorMotor, true);
-        elevatorFollower.configure(elevatorFollowerConfig, ResetMode.kResetSafeParameters,
-                PersistMode.kPersistParameters);
+        feedFollowerMotor = new SparkMax(FEED_FOLLOWER_CAN_ID, MotorType.kBrushless);
+        SparkMaxConfig upperShooterConfig = new SparkMaxConfig();
+        upperShooterConfig.smartCurrentLimit(50).idleMode(IdleMode.kBrake).follow(feedLeaderMotor, true);
+        feedFollowerMotor.configure(upperShooterConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
-        // Elevator encoder init
+        // Elevator Encoder Init
         elevatorEncoder = new RevEncoderRelative(ELEVATOR_ENCODER_CHANNEL_A, ELEVATOR_ENCODER_CHANNEL_B);
         elevatorEncoder.reset();
 
-        elevatorPIDController = new ThreadedPIDController(elevatorEncoder, ELEVATOR_KP, ELEVATOR_KI, ELEVATOR_KD,
-                ELEVATOR_PID_MIN, ELEVATOR_PID_MAX, false);
+        // PID Controller Init
+        elevatorPIDController = new ThreadedPIDController(elevatorEncoder, ELEVATOR_KP, ELEVATOR_KI, ELEVATOR_KD, ELEVATOR_PID_MIN, ELEVATOR_PID_MAX, false);
         elevatorPIDController.start(false);
 
+        // Executor Services
         this.executorService = Executors.newSingleThreadExecutor();
         this.executorLock = new ReentrantLock(true);
         this.executorActive = new AtomicBoolean();
     }
 
     /**
-     * 
+     *
      * @param speed
      */
     public void setElevatorSpeed(final double speed) {
         elevatorPIDController.disablePID();
-        elevatorMotor.set(speed);
+        elevatorLeaderMotor.set(speed);
     }
 
     /**
-     * 
+     *
      * @param speed
      */
     public void setElevatorSpeed(final double speed, final double lowerBound, final double upperBound) {
         elevatorPIDController.disablePID();
         final double elevatorPosition = getElevatorPosition();
         if (speed < 0 && elevatorPosition <= lowerBound) {
-            elevatorMotor.set(0);
+            elevatorLeaderMotor.set(0);
         } else if (speed > 0 && elevatorPosition >= upperBound) {
-            elevatorMotor.set(0);
+            elevatorLeaderMotor.set(0);
         } else {
-            elevatorMotor.set(speed);
+            elevatorLeaderMotor.set(speed);
         }
     }
 
     /**
-     * 
+     *
      * @param position
      */
     public void setElevatorPosition(final double position, final double lowerBound, final double upperBound) {
@@ -113,37 +126,51 @@ public class Elevator implements RobotProperties {
         // final int winchTwoPosition = elevatorTwo.getEncoderValue();
         if (position < ElevatorPosition && ElevatorPosition <= lowerBound) {
             elevatorPIDController.disablePID();
-            elevatorMotor.set(0);
+            elevatorLeaderMotor.set(0);
         } else if (position > ElevatorPosition && ElevatorPosition >= upperBound) {
             elevatorPIDController.disablePID();
-            elevatorMotor.set(0);
+            elevatorLeaderMotor.set(0);
         } else {
             elevatorPIDController.enablePID();
             elevatorPIDController.updateSensorLockValueWithoutReset(position);
-            elevatorMotor.set(elevatorPIDController.getPIDValue());
+            elevatorLeaderMotor.set(elevatorPIDController.getPIDValue());
         }
         SmartDashboard.putNumber("PID", elevatorPIDController.getPIDValue());
     }
 
     /**
-     * 
+     *
      * @return The current encoder clicks.
      */
     public double getElevatorPosition() {
         return elevatorPIDController.getSensorValue();
     }
 
+    /**
+     *
+     * @return
+     */
     public double getElevatorDesiredPoition() {
         return elevatorPIDController.getSensorLockValue();
     }
 
     /**
-     * Sets the acuator to the given speed for the specified duration.
-     * 
-     * @param duration
-     *                 The duration that the acuator will run for before stopping.
+     *
+     * @param speed
      */
-    public void setAcuatorSpeed(final double speed, final double duration) {
+    public void setFeederSpeed(final double speed) {
+        if (!executorActive.get()) {
+            feedLeaderMotor.set(speed);
+        }
+    }
+
+    /**
+     * Sets the acuator to the given speed for the specified duration.
+     *
+     * @param duration
+     *            The duration that the acuator will run for before stopping.
+     */
+    public void setFeederSpeed(final double speed, final double duration) {
         try {
             executorLock.lock();
             if (executorActive.compareAndSet(false, true)) {
@@ -154,12 +181,10 @@ public class Elevator implements RobotProperties {
                             if (DriverStation.isDisabled()) {
                                 break;
                             }
-                            // leftAcuator.set(ControlMode.PercentOutput, speed);
-                            // rightAcuator.set(ControlMode.PercentOutput, speed);
+                            feedLeaderMotor.set(speed);
                             Timer.delay(.02);
                         }
-                        // leftAcuator.set(ControlMode.PercentOutput, 0);
-                        // rightAcuator.set(ControlMode.PercentOutput, 0);
+                        feedLeaderMotor.set(0);
                     } finally {
                         executorActive.set(false);
                     }
@@ -172,11 +197,11 @@ public class Elevator implements RobotProperties {
 
     /**
      * Sets the acuator to the given speed for the specified duration.
-     * 
+     *
      * @param timeout
-     *                The timeout that the acuator will not exeed.
+     *            The timeout that the acuator will not exeed.
      */
-    public void extendAcuatorToSensor(final double speed, final DigitalInput sensor, final double timeout) {
+    public void feedUntilClear(final double speed, final DigitalInput sensor, final double timeout) {
         try {
             executorLock.lock();
             if (executorActive.compareAndSet(false, true)) {
@@ -187,12 +212,10 @@ public class Elevator implements RobotProperties {
                             if (!sensor.get() || DriverStation.isDisabled()) {
                                 break;
                             }
-                            // leftAcuator.set(ControlMode.PercentOutput, speed);
-                            // rightAcuator.set(ControlMode.PercentOutput, speed);
+                            feedLeaderMotor.set(speed);
                             Timer.delay(.02);
                         }
-                        // leftAcuator.set(ControlMode.PercentOutput, 0);
-                        // rightAcuator.set(ControlMode.PercentOutput, 0);
+                        feedLeaderMotor.set(0);
                     } finally {
                         executorActive.set(false);
                     }
@@ -203,19 +226,13 @@ public class Elevator implements RobotProperties {
         }
     }
 
-    public void setAcuatorSpeed(final double speed) {
-        if (!executorActive.get()) {
-            // leftAcuator.set(ControlMode.PercentOutput, speed);
-            // rightAcuator.set(ControlMode.PercentOutput, speed);
-        }
-    }
-
     /**
-     * 
+     *
      */
     public void disable() {
         elevatorPIDController.disablePID();
-        elevatorMotor.disable();
+        elevatorLeaderMotor.disable();
+        feedLeaderMotor.disable();
     }
 
     public void shuffleboardInit(final String tabName) {
@@ -223,8 +240,7 @@ public class Elevator implements RobotProperties {
 
         // shooterTab.addBoolean("Shooter At Speed:", () ->
         // isBothShootersAtVelocity(SHOOTER_TILT_ALLOWED_DEVIATION));
-        shooterTab.addString("Elevator Position:",
-                () -> String.format("%.2f | %.2f", getElevatorPosition(), getElevatorDesiredPoition()));
+        shooterTab.addString("Elevator Position:", () -> String.format("%.2f | %.2f", getElevatorPosition(), getElevatorDesiredPoition()));
         // shooterTab.addString("Upper Shooter RPM:", () -> String.format("%.2f | %.2f",
         // getUpperShooterVelocity(), getUpperShooterTargetVelocity()));
         // shooterTab.addString("Shooter Tilt:", () -> String.format("%.2f | %.2f",

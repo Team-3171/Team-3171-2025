@@ -28,15 +28,13 @@ import com.ctre.phoenix6.hardware.Pigeon2;
 // Team 3171 Imports
 import frc.team3171.drive.SwerveDrive;
 import frc.team3171.models.PhotonAprilTagTarget;
-import frc.team3171.models.ShooterShot;
 import frc.team3171.models.XboxControllerState;
-import frc.team3171.operator.Shooter;
 import frc.team3171.auton.AutonRecorder;
 import frc.team3171.auton.AutonRecorderData;
 import frc.team3171.controllers.Elevator;
 import frc.team3171.controllers.ThreadedPIDController;
 import frc.team3171.controllers.VisionController;
-import static frc.team3171.HelperFunctions.Deadzone;
+//import static frc.team3171.HelperFunctions.Deadzone;
 import static frc.team3171.HelperFunctions.Deadzone_With_Map;
 import static frc.team3171.HelperFunctions.Get_Gyro_Displacement;
 import static frc.team3171.HelperFunctions.Normalize_Gryo_Value;
@@ -58,11 +56,8 @@ public class Robot extends TimedRobot implements RobotProperties {
   private Pigeon2 gyro;
   private ThreadedPIDController gyroPIDController;
 
-  // Shooter Objects
-  private Shooter shooterController;
-  private DigitalInput feedSensor;
-
   // Elevator Controller
+  private DigitalInput feedSensor;
   private Elevator elevatorController;
 
   // Auton Recorder
@@ -91,15 +86,9 @@ public class Robot extends TimedRobot implements RobotProperties {
   private XboxControllerState driveControllerState, operatorControllerState;
   private boolean robotOffGround;
   private volatile boolean fieldOrientationFlipped;
-  private double shooterAtSpeedStartTime;
 
   // Edge Triggers
   private boolean zeroEdgeTrigger;
-  private boolean pickupEdgeTrigger;
-  private boolean shooterButtonEdgeTrigger;
-  private boolean shooterAtSpeedEdgeTrigger;
-
-  private boolean doLayoverShot;
 
   @Override
   public void robotInit() {
@@ -107,31 +96,20 @@ public class Robot extends TimedRobot implements RobotProperties {
     driveController = new XboxController(0);
     operatorController = new XboxController(1);
 
-    doLayoverShot = false;
+    // Sensors
+    feedSensor = new DigitalInput(5);
+    gyro = new Pigeon2(GYRO_CAN_ID, "canivore");
+    gyro.reset();
 
     // Drive Controller Init
     swerveDrive = new SwerveDrive(lr_Unit_Config, lf_Unit_Config, rf_Unit_Config, rr_Unit_Config);
 
-    // Shooter Controller Init
-    try {
-      shooterController = new Shooter();
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-    feedSensor = new DigitalInput(5);
-
+    // Elevator Controller Init
     elevatorController = new Elevator();
 
-    // Sensors
-    gyro = new Pigeon2(GYRO_CAN_ID, "canivore");
-    gyro.reset();
-
     // PID Controllers
-    gyroPIDController = new ThreadedPIDController(
-        () -> Normalize_Gryo_Value(gyro.getAngle() + (fieldOrientationFlipped ? 180 : 0)), GYRO_KP, GYRO_KI, GYRO_KD,
-        GYRO_MIN, GYRO_MAX, false); // fieldOrientationFlipped statement might have to be inverted because new
-                                    // getYaw() function inverts its output
-    // .plus(Units.Degrees.of(fieldOrientationFlipped ? 180 : 0))
+    gyroPIDController = new ThreadedPIDController(() -> Normalize_Gryo_Value(gyro.getAngle() + (fieldOrientationFlipped ? 180 : 0)), GYRO_KP, GYRO_KI, GYRO_KD, GYRO_MIN, GYRO_MAX,
+        false);
     gyroPIDController.setMinValue(-180);
     gyroPIDController.setMaxValue(180);
     gyroPIDController.start();
@@ -164,22 +142,16 @@ public class Robot extends TimedRobot implements RobotProperties {
 
     // Vision Controller Init
     visionController = new VisionController();
-    // visionController.shuffleboardTabInit("FRONT_TARGETING_CAMERA", "Front
-    // Cameras");
-    // visionController.shuffleboardTabInit("REAR_TARGETING_CAMERA", "Rear
-    // Cameras");
+    // visionController.shuffleboardTabInit("FRONT_TARGETING_CAMERA", "Front Cameras");
+    // visionController.shuffleboardTabInit("REAR_TARGETING_CAMERA", "Rear Cameras");
 
     // Global Variable Init
     driveControllerState = new XboxControllerState();
     operatorControllerState = new XboxControllerState();
     fieldOrientationFlipped = false;
-    shooterAtSpeedStartTime = 0;
 
     // Edge Triggers Init
     zeroEdgeTrigger = false;
-    pickupEdgeTrigger = false;
-    shooterButtonEdgeTrigger = false;
-    shooterAtSpeedEdgeTrigger = false;
 
     shuffleboardInit();
 
@@ -194,7 +166,6 @@ public class Robot extends TimedRobot implements RobotProperties {
     m_led.start();
   }
 
-  @SuppressWarnings("resource")
   private void shuffleboardInit() {
     ShuffleboardTab periodicTab = Shuffleboard.getTab("Periodic");
 
@@ -211,7 +182,6 @@ public class Robot extends TimedRobot implements RobotProperties {
 
     // Controller Values
     swerveDrive.shuffleboardInit("Swerve Debug");
-    shooterController.shuffleboardInit("Shooter Debug");
     elevatorController.shuffleboardInit("Elevator Debug");
     visionController.shuffleboardTabInit("FRONT_TARGETING_CAMERA", "FRONT_TARGETING_CAMERA");
 
@@ -222,42 +192,31 @@ public class Robot extends TimedRobot implements RobotProperties {
       // Get the needed joystick values after calculating the deadzones
       double leftStickX = Deadzone_With_Map(JOYSTICK_DEADZONE, driveControllerState.getLeftX());
       double leftStickY = Deadzone_With_Map(JOYSTICK_DEADZONE, -driveControllerState.getLeftY());
-      double rightStickX = Deadzone_With_Map(JOYSTICK_DEADZONE, driveControllerState.getRightX(), -MAX_ROTATION_SPEED,
-          MAX_ROTATION_SPEED);
+      double rightStickX = Deadzone_With_Map(JOYSTICK_DEADZONE, driveControllerState.getRightX(), -MAX_ROTATION_SPEED, MAX_ROTATION_SPEED);
 
       // Calculate the left stick angle and magnitude
       double leftStickAngle = Normalize_Gryo_Value(Math.toDegrees(Math.atan2(leftStickX, leftStickY)));
       double leftStickMagnitude = Math.sqrt(Math.pow(leftStickX, 2) + Math.pow(leftStickY, 2));
-      leftStickMagnitude = leftStickMagnitude > 1 ? 1 : leftStickMagnitude;
 
       // Calculate the field corrected drive angle
-      double fieldCorrectedAngle = FIELD_ORIENTED_SWERVE
-          ? Normalize_Gryo_Value(leftStickAngle - gyroPIDController.getSensorValue())
-          : leftStickAngle;
+      double fieldCorrectedAngle = FIELD_ORIENTED_SWERVE ? Normalize_Gryo_Value(leftStickAngle - gyroPIDController.getSensorValue()) : leftStickAngle;
 
       // Operator Controller Values
-      // debugTab.addString("Left Stick Angle", () -> String.format("%.2f\u00B0",
-      // leftStickAngle));
-      // debugTab.addString("Left Stick Velocity", () -> String.format("%.2f",
-      // leftStickMagnitude));
-      // debugTab.addString("Right Stick X", () -> String.format("%.2f",
-      // rightStickX));
-      // debugTab.addString("Field Adjusted Angle", () -> String.format("%.2f\u00B0",
-      // fieldCorrectedAngle));
+      debugTab.addString("Left Stick Angle", () -> String.format("%.2f\u00B0", leftStickAngle));
+      debugTab.addString("Left Stick Velocity", () -> String.format("%.2f", leftStickMagnitude));
+      debugTab.addString("Right Stick X", () -> String.format("%.2f", rightStickX));
+      debugTab.addString("Field Adjusted Angle", () -> String.format("%.2f\u00B0", fieldCorrectedAngle));
     }
   }
 
   @Override
   public void robotPeriodic() {
     // Update the controller states
-    driveControllerState = driveController.isConnected() ? new XboxControllerState(driveController)
-        : new XboxControllerState();
-    operatorControllerState = operatorController.isConnected() ? new XboxControllerState(operatorController)
-        : new XboxControllerState();
+    driveControllerState = driveController.isConnected() ? new XboxControllerState(driveController) : new XboxControllerState();
+    operatorControllerState = operatorController.isConnected() ? new XboxControllerState(operatorController) : new XboxControllerState();
 
     // Update off ground value
-    robotOffGround = false;// Math.abs(gyro.getRoll().getValueAsDouble()) > 5 ||
-                           // Math.abs(gyro.getPitch().getValueAsDouble()) > 5;
+    robotOffGround = Math.abs(gyro.getRoll().getValueAsDouble()) > 5 || Math.abs(gyro.getPitch().getValueAsDouble()) > 5;
 
     // Field Orientation Chooser
     fieldOrientationFlipped = fieldOrientationChooser.getSelected().booleanValue();
@@ -381,7 +340,6 @@ public class Robot extends TimedRobot implements RobotProperties {
     // Disable all controllers
     swerveDrive.disable();
     gyroPIDController.disablePID();
-    shooterController.disable();
     elevatorController.disable();
 
     // Once auton recording is done, save the data to a file, if there is any
@@ -419,22 +377,15 @@ public class Robot extends TimedRobot implements RobotProperties {
     gyroPIDController.enablePID();
     gyroPIDController.updateSensorLockValue();
 
-    // Global Variable reset
-    shooterAtSpeedStartTime = 0;
-
     // Edge Triggers reset
     zeroEdgeTrigger = false;
-    pickupEdgeTrigger = false;
-    shooterButtonEdgeTrigger = false;
-    shooterAtSpeedEdgeTrigger = false;
   }
 
   private void driveControlsPeriodic(final XboxControllerState driveControllerState, final double gyroValue) {
     // Get the needed joystick values after calculating the deadzones
     final double leftStickX = Deadzone_With_Map(JOYSTICK_DEADZONE, driveControllerState.getLeftX());
     final double leftStickY = Deadzone_With_Map(JOYSTICK_DEADZONE, -driveControllerState.getLeftY());
-    final double rightStickX = Deadzone_With_Map(JOYSTICK_DEADZONE, driveControllerState.getRightX(),
-        -MAX_ROTATION_SPEED, MAX_ROTATION_SPEED);
+    final double rightStickX = Deadzone_With_Map(JOYSTICK_DEADZONE, driveControllerState.getRightX(), -MAX_ROTATION_SPEED, MAX_ROTATION_SPEED);
 
     // Calculate the left stick angle and magnitude
     final double leftStickAngle = Normalize_Gryo_Value(Math.toDegrees(Math.atan2(leftStickX, leftStickY)));
@@ -442,11 +393,10 @@ public class Robot extends TimedRobot implements RobotProperties {
     leftStickMagnitude = leftStickMagnitude > 1 ? 1 : leftStickMagnitude;
 
     // Calculate the field corrected drive angle
-    final double fieldCorrectedAngle = FIELD_ORIENTED_SWERVE ? Normalize_Gryo_Value(leftStickAngle - gyroValue)
-        : leftStickAngle;
+    final double fieldCorrectedAngle = FIELD_ORIENTED_SWERVE ? Normalize_Gryo_Value(leftStickAngle - gyroValue) : leftStickAngle;
 
     // Drive Controls
-    final boolean boostMode = false;// driveControllerState.getYButton();
+    final boolean boostMode = driveControllerState.getYButton();
     final boolean targetLocking = false;// driveControllerState.getAButton();
     final boolean pickupLocking = false;// driveControllerState.getBButton();
     if (rightStickX != 0 || robotOffGround) {
@@ -506,46 +456,32 @@ public class Robot extends TimedRobot implements RobotProperties {
 
   private void operatorControlsPeriodic(final XboxControllerState operatorControllerState, final double gyroValue) {
     // Get the needed joystick values after calculating the deadzones
-    final double leftStickY = Deadzone_With_Map(JOYSTICK_DEADZONE, -operatorControllerState.getLeftY());
+    // final double leftStickY = Deadzone_With_Map(JOYSTICK_DEADZONE, -operatorControllerState.getLeftY());
 
-    // Get shooter controls
-    final boolean button_Pickup = operatorControllerState.getRightTriggerAxis() > .02;
-    final boolean button_Reverse_Feed = operatorControllerState.getLeftTriggerAxis() > .02;
-    final boolean button_Short_Shot = operatorControllerState.getBButton();
-    final boolean button_Normal_Shot = operatorControllerState.getAButton();
-    final boolean button_Far_Shot = operatorControllerState.getXButton();
-    final boolean button_Yeet_Shot = operatorControllerState.getYButton();
-    final boolean button_Shooter = button_Short_Shot || button_Normal_Shot || button_Far_Shot || button_Yeet_Shot;
+    // Get controls
+    // final boolean button_Pickup = operatorControllerState.getRightTriggerAxis() > .02;
+    // final boolean button_Reverse_Feed = operatorControllerState.getLeftTriggerAxis() > .02;
+    final boolean button_run_feed = operatorControllerState.getBButton();
+    final boolean button_elevator_down = operatorControllerState.getAButton();
+    // final boolean button_Far_Shot = operatorControllerState.getXButton();
+    final boolean button_elevator_up = operatorControllerState.getYButton();
+    // final boolean button_Shooter = button_Short_Shot || button_Normal_Shot || button_Far_Shot || button_Yeet_Shot;
 
-    // Shooter controls start
-    final ShooterShot selectedShot;
-    if (button_Short_Shot) {
-      // Short shot velocity
-      selectedShot = SHOOTER_SHOTS.get("SHORT_SHOT");
-    } else if (button_Normal_Shot) {
-      // Normal shot velocity
-      selectedShot = SHOOTER_SHOTS.get("NORMAL_SHOT");
-    } else if (button_Far_Shot) {
-      // Far shot velocity
-      selectedShot = SHOOTER_SHOTS.get("FAR_SHOT");
-    } else if (button_Yeet_Shot) {
-      // Yeet shot velocity
-      selectedShot = SHOOTER_SHOTS.get("YEET_SHOT");
-    } else {
-      selectedShot = null;
-    }
-
-    if (button_Normal_Shot) {
+    // Elevator Controls
+    if (button_elevator_down) {
       elevatorController.setElevatorSpeed(-.2, ELEVATOR_LOWER_CUTOFF, ELEVATOR_UPPER_CUTOFF);
-    } else if (button_Yeet_Shot) {
+    } else if (button_elevator_up) {
       elevatorController.setElevatorSpeed(.25, ELEVATOR_LOWER_CUTOFF, ELEVATOR_UPPER_CUTOFF);
     } else {
       elevatorController.setElevatorSpeed(0);
     }
 
-    // Edge Trigger Updates
-    pickupEdgeTrigger = button_Pickup;
-    shooterButtonEdgeTrigger = button_Shooter;
+    // Feed Controls
+    if (button_run_feed) {
+      elevatorController.setFeederSpeed(.2, 3);
+    } else {
+      elevatorController.setFeederSpeed(0);
+    }
   }
 
 }

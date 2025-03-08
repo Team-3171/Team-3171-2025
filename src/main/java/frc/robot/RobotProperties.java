@@ -6,7 +6,6 @@ import java.util.HashMap;
 // FRC Imports
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
-import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 
@@ -34,17 +33,15 @@ public interface RobotProperties {
         public static final boolean SWERVE_UNIT_ORIENTATION_OPTIMIZATION = false;
 
         /** Swerve Unit Configuration **/
-        public static final SwerveUnitConfig lf_Unit_Config = new SwerveUnitConfigBuilder(1, 2, 3).build();
-        public static final SwerveUnitConfig lr_Unit_Config = new SwerveUnitConfigBuilder(5, 6, 2).build();
-        public static final SwerveUnitConfig rf_Unit_Config = new SwerveUnitConfigBuilder(3, 4, 1).build();
-        public static final SwerveUnitConfig rr_Unit_Config = new SwerveUnitConfigBuilder(7, 8, 0).build();
+        public static final SwerveUnitConfig lf_Unit_Config = new SwerveUnitConfigBuilder(1, 2, 3).setAbsoluteEncoderInverted(true).build();
+        public static final SwerveUnitConfig lr_Unit_Config = new SwerveUnitConfigBuilder(5, 6, 2).setAbsoluteEncoderInverted(true).build();
+        public static final SwerveUnitConfig rf_Unit_Config = new SwerveUnitConfigBuilder(3, 4, 1).setAbsoluteEncoderInverted(true).build();
+        public static final SwerveUnitConfig rr_Unit_Config = new SwerveUnitConfigBuilder(7, 8, 0).setAbsoluteEncoderInverted(true).build();
 
         /** CAN ID Properties **/
         public static final int GYRO_CAN_ID = 10;
-        public static final int LEADER_SHOOTER_CAN_ID = 9, FOLLOWER_SHOOTER_CAN_ID = 10;
-
-        /** CAN ID Properties **/
-        public static final int ELEVATOR_ONE_CAN_ID = 11, ELEVATOR_TWO_CAN_ID = 12;
+        public static final int FEED_LEADER_CAN_ID = 9, FEED_FOLLOWER_CAN_ID = 10;
+        public static final int ELEVATOR_LEADER_CAN_ID = 11, ELEVATOR_FOLLOWER_CAN_ID = 12;
         public static final int PCM_CAN_ID = 21;
 
         /** Pneumatic Channels **/
@@ -56,9 +53,9 @@ public interface RobotProperties {
 
         /** Inversion Properties **/
         public static final boolean ELEVATOR_INVERTED = true;
+        public static final boolean SHOOTER_INVERTED = true;
 
         /** Shooter Variables **/
-        public static final boolean SHOOTER_INVERTED = true;
         public static final double SHOOTER_TILT_ALLOWED_DEVIATION = 3; // Shooter Tilt Accuracy Settings
         public static final double SHOOTER_ALLOWED_PERCENT_ERROR = .05; // Shooter Veloctity Accuracy Settings
         public static final double SHOOTER_DESIRED_AT_SPEED_TIME = .75; // Shooter Veloctity Time Window Settings
@@ -72,47 +69,21 @@ public interface RobotProperties {
                 }
         };
 
-        public static final int SHOOTER_TILT_ID = 4;
-        public static final double SHOOTER_TILT_ZERO_POSITION = 12.3;
-        public static final double SHOOTER_TILT_MIN_POSITION = -60, SHOOTER_TILT_MAX_POSITION = 70;
-
         /** Compressor Properties **/
         public static final double MIN_PRESSURE = 95, MAX_PRESSURE = 110;
 
         /** Sensor Channels **/
-        public static int ELEVATOR_SENSOR_CHANNEL = 0;
+        public static int ELEVATOR_LINE_SENSOR_CHANNEL = 0;
         public static int ELEVATOR_ENCODER_CHANNEL_A = 1, ELEVATOR_ENCODER_CHANNEL_B = 2;
 
+        /** Elevator Properties **/
         public static int ELEVATOR_LOWER_CUTOFF = 300, ELEVATOR_UPPER_CUTOFF = 11500;
-
-        /** PID Properties **/
-        public static final double LIMELIGHT_KP = -.0175, LIMELIGHT_KI = -.0022, LIMELIGHT_KD = -.0022,
-                        LIMELIGHT_MIN = -.5, LIMELIGHT_MAX = .5;
-        public static final double ELEVATOR_KP = .6, ELEVATOR_KI = .1, ELEVATOR_KD = 0, ELEVATOR_KF = 0,
-                        ELEVATOR_PID_MIN = -.25, ELEVATOR_PID_MAX = .4;
-
-        /** Feeder Variables **/
-        public static final boolean LOWER_FEEDER_INVERTED = true, UPPER_FEEDER_INVERTED = false;
-        public static final double LOWER_FEED_PICKUP_SPEED = .5, UPPER_FEED_PICKUP_SPEED = .25;
-        public static final double UPPER_FEED_END_SPEED = -.1, UPPER_FEED_END_TIME = .1;
-        public static final double LOWER_FEED_SHOOT_SPEED = 0, UPPER_FEED_SHOOT_SPEED = .8;
-        public static final double LOWER_FEED_BACKFEED_SPEED = 0, UPPER_FEED_BACKFEED_SPEED = -.075;
-        public static final Color RING_COLOR_ONE = new Color(143, 90, 21);
-        public static final double COLOR_CONFIDENCE = .85;
 
         /** Photon Vision Constants **/
         public static final HashMap<String, PhotonCameraConfig> PHOTON_CAMERAS_CONFIGS = new HashMap<>() {
                 {
-                        put("FRONT_TARGETING_CAMERA", new PhotonCameraConfig("FRONT_TARGETING_CAMERA",
-                                        Units.inchesToMeters(15), Units.degreesToRadians(22.5)));
-                        put("REAR_TARGETING_CAMERA", new PhotonCameraConfig("REAR_TARGETING_CAMERA",
-                                        Units.inchesToMeters(15), Units.degreesToRadians(22.5)));
-                        // put("FRONT_PICKUP_CAMERA", new PhotonCameraConfig("FRONT_PICKUP_CAMERA",
-                        // Units.inchesToMeters(9),
-                        // Units.degreesToRadians(0)));
-                        // put("REAR_PICKUP_CAMERA", new PhotonCameraConfig("REAR_PICKUP_CAMERA",
-                        // Units.inchesToMeters(9),
-                        // Units.degreesToRadians(0)));
+                        put("FRONT_TARGETING_CAMERA", new PhotonCameraConfig("FRONT_TARGETING_CAMERA", Units.inchesToMeters(15), Units.degreesToRadians(22.5)));
+                        put("REAR_TARGETING_CAMERA", new PhotonCameraConfig("REAR_TARGETING_CAMERA", Units.inchesToMeters(15), Units.degreesToRadians(22.5)));
                 }
         };
 
@@ -146,34 +117,19 @@ public interface RobotProperties {
                 }
         };
 
-        public static final AprilTagFieldLayout AprilTagLayout = AprilTagFieldLayout
-                        .loadField(AprilTagFields.k2024Crescendo);
+        public static final AprilTagFieldLayout AprilTagLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2024Crescendo);
 
         /** PID Variables **/
         public static final double GYRO_KP = .01, GYRO_KI = .0001, GYRO_KD = .0, GYRO_MIN = -.5, GYRO_MAX = .5;
-        // public static final double GYRO_KP = .013, GYRO_KI = .00075, GYRO_KD =
-        // .00075, GYRO_MIN = -.5, GYRO_MAX = .5;
-        // public static final double GYRO_KP = .015, GYRO_KI = 0.0015, GYRO_KD = -.15,
-        // GYRO_MIN = -.75, GYRO_MAX = .75;
-        // public static final double SLEW_KP = -.005, SLEW_KI = -.0004, SLEW_KD = .035,
-        // SLEW_PID_MIN = -1, SLEW_PID_MAX = 1;
-        public static final double SLEW_KP = -.015, SLEW_KI = -0.002, SLEW_KD = .003, SLEW_PID_MIN = -.6,
-                        SLEW_PID_MAX = .6;
-        public static final double SHOOTER_KP = .00025, SHOOTER_KI = .0004, SHOOTER_KD = -.002, SHOOTER_MIN = -1,
-                        SHOOTER_MAX = 1;
-        // public static final double TILT_KP = .02, TILT_KI = .0005, TILT_KD = -.02,
-        // TILT_MIN = -.75, TILT_MAX = .75;
-
-        /** new tilt PID variables **/
-        // public static final double TILT_KP = .0125, TILT_KI = .000125, TILT_KD =
-        // -.0001, TILT_MIN = -.75, TILT_MAX = .75;
-        public static final double TILT_KP = .015, TILT_KI = .0, TILT_KD = -.02, TILT_MIN = -.75, TILT_MAX = .75;
+        public static final double SLEW_KP = -.015, SLEW_KI = -0.002, SLEW_KD = .003, SLEW_PID_MIN = -.6, SLEW_PID_MAX = .6;
+        public static final double SHOOTER_KP = .00025, SHOOTER_KI = .0004, SHOOTER_KD = -.002, SHOOTER_MIN = -1, SHOOTER_MAX = 1;
+        public static final double LIMELIGHT_KP = -.0175, LIMELIGHT_KI = -.0022, LIMELIGHT_KD = -.0022, LIMELIGHT_MIN = -.5, LIMELIGHT_MAX = .5;
+        public static final double ELEVATOR_KP = .6, ELEVATOR_KI = .1, ELEVATOR_KD = 0, ELEVATOR_KF = 0, ELEVATOR_PID_MIN = -.25, ELEVATOR_PID_MAX = .4;
 
         /** Auton Mode Constants **/
         public static final String DEFAULT_AUTON = "Disabled";
 
         /** Auton Modes **/
-        public static final String[] AUTON_OPTIONS = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12",
-                        "13", "14", "15", "16" };
+        public static final String[] AUTON_OPTIONS = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16" };
 
 }
