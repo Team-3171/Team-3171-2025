@@ -516,6 +516,9 @@ public class Robot extends TimedRobot implements RobotProperties {
     final boolean button_run_feed_forward = operatorControllerState.getRightTriggerAxis() > .1;
     final boolean button_run_feed_auto = operatorControllerState.getRightBumper();
 
+    final boolean button_extend_pickup = ((int) operatorControllerState.getPOV()) == 0;
+    final boolean button_retract_pickup = ((int) operatorControllerState.getPOV()) == 180;
+
     // Elevator Controls
     if (button_elevator_feed && !elevatorPositionEdgeTrigger) {
       pickup.retract();
@@ -552,6 +555,12 @@ public class Robot extends TimedRobot implements RobotProperties {
       elevatorController.setFeederSpeed(0);
     }
     feederEdgeTrigger = button_run_feed_auto;
+
+    if (button_extend_pickup) {
+      pickup.extend();
+    } else if (button_retract_pickup) {
+      pickup.retract();
+    }
 
   }
 

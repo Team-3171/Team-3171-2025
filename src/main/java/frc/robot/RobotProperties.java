@@ -122,8 +122,8 @@ public interface RobotProperties {
         public static final AprilTagFieldLayout AprilTagLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2024Crescendo);
 
         /** PID Variables **/
-        public static final double GYRO_KP = .01, GYRO_KI = .0001, GYRO_KD = .0, GYRO_MIN = -.5, GYRO_MAX = .5;
-        public static final double SLEW_KP = -.015, SLEW_KI = -0.002, SLEW_KD = .003, SLEW_PID_MIN = -.6, SLEW_PID_MAX = .6;
+        public static final double GYRO_KP = .013, GYRO_KI = .00075, GYRO_KD = .00075, GYRO_MIN = -.5, GYRO_MAX = .5;
+        public static final double SLEW_KP = -.015, SLEW_KI = -0.003, SLEW_KD = .003, SLEW_PID_MIN = -.6, SLEW_PID_MAX = .6;
         public static final double SHOOTER_KP = .00025, SHOOTER_KI = .0004, SHOOTER_KD = -.002, SHOOTER_MIN = -1, SHOOTER_MAX = 1;
         public static final double LIMELIGHT_KP = -.0175, LIMELIGHT_KI = -.0022, LIMELIGHT_KD = -.0022, LIMELIGHT_MIN = -.5, LIMELIGHT_MAX = .5;
         public static final double ELEVATOR_KP = -.6, ELEVATOR_KI = 0, ELEVATOR_KD = 0, ELEVATOR_KF = 0, ELEVATOR_PID_MIN = -5, ELEVATOR_PID_MAX = .75;
