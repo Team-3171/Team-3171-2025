@@ -63,7 +63,7 @@ public class Elevator implements RobotProperties {
 
         elevatorFollowerMotor = new SparkMax(ELEVATOR_FOLLOWER_CAN_ID, MotorType.kBrushless);
         SparkMaxConfig elevatorFollowerConfig = new SparkMaxConfig();
-        elevatorConfig.idleMode(IdleMode.kBrake).follow(elevatorLeaderMotor, true);
+        elevatorFollowerConfig.idleMode(IdleMode.kBrake).follow(elevatorLeaderMotor, true);
         elevatorFollowerMotor.configure(elevatorFollowerConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
         // Init the feeder motors
