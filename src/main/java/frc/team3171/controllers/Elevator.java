@@ -8,10 +8,10 @@ import java.util.concurrent.locks.ReentrantLock;
 
 // FRC Imports
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.PneumaticsModuleType;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.DigitalInput;
 
 // REV Imports
@@ -24,8 +24,8 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 
 // Team 3171 Imports
 import frc.robot.RobotProperties;
+import frc.team3171.pnuematics.DoublePistonController;
 import frc.team3171.sensors.RevEncoderRelative;
-import frc.team3171.sensors.ThreadedPIDController;
 
 /**
  * @author Mark Ebert
@@ -35,6 +35,9 @@ public class Elevator implements RobotProperties {
     // Motor Controllers
     private final SparkMax elevatorLeaderMotor, elevatorFollowerMotor;
     private final SparkMax feedLeaderMotor, feedFollowerMotor;
+
+    // Piston
+    private DoublePistonController pickup;
 
     // Sensors
     private final RevEncoderRelative elevatorEncoder;
@@ -82,8 +85,11 @@ public class Elevator implements RobotProperties {
         elevatorEncoder = new RevEncoderRelative(ELEVATOR_ENCODER_CHANNEL_A, ELEVATOR_ENCODER_CHANNEL_B);
         elevatorEncoder.reset();
 
+        // Pneumatics Init
+        pickup = new DoublePistonController(PCM_CAN_ID, PneumaticsModuleType.REVPH, PICKUP_FORWARD_CHANNEL, PICKUP_REVERSE_CHANNEL, PICKUP_INVERTED);
+
         // PID Controller Init
-        elevatorPIDController = new ThreadedPIDController(elevatorEncoder, ELEVATOR_KP, ELEVATOR_KI, ELEVATOR_KD, ELEVATOR_PID_MIN, ELEVATOR_PID_MAX, false);
+        elevatorPIDController = new ThreadedPIDController(this::getElevatorPosition, ELEVATOR_KP, ELEVATOR_KI, ELEVATOR_KD, ELEVATOR_PID_MIN, ELEVATOR_PID_MAX, true);
         elevatorPIDController.start(false);
 
         // Executor Services
@@ -135,7 +141,6 @@ public class Elevator implements RobotProperties {
             elevatorPIDController.updateSensorLockValueWithoutReset(position);
             elevatorLeaderMotor.set(elevatorPIDController.getPIDValue());
         }
-        SmartDashboard.putNumber("PID", elevatorPIDController.getPIDValue());
     }
 
     /**
@@ -143,7 +148,7 @@ public class Elevator implements RobotProperties {
      * @return The current encoder clicks.
      */
     public double getElevatorPosition() {
-        return elevatorPIDController.getSensorValue();
+        return elevatorEncoder.getAsDouble();
     }
 
     /**
@@ -201,12 +206,14 @@ public class Elevator implements RobotProperties {
      * @param timeout
      *            The timeout that the acuator will not exeed.
      */
-    public void feedUntilClear(final double speed, final DigitalInput sensor, final double timeout) {
+    public void feedUntilClear(final double speed, final DigitalInput sensor, final double timeout, final double delay) {
         try {
             executorLock.lock();
             if (executorActive.compareAndSet(false, true)) {
                 executorService.execute(() -> {
                     try {
+                        pickup.extend();
+                        Timer.delay(delay);
                         final double endTime = Timer.getFPGATimestamp() + timeout;
                         while (Timer.getFPGATimestamp() <= endTime) {
                             if (!sensor.get() || DriverStation.isDisabled()) {
@@ -216,6 +223,7 @@ public class Elevator implements RobotProperties {
                             Timer.delay(.02);
                         }
                         feedLeaderMotor.set(0);
+                        pickup.retract();
                     } finally {
                         executorActive.set(false);
                     }
@@ -226,6 +234,14 @@ public class Elevator implements RobotProperties {
         }
     }
 
+    public void retractPickup() {
+        pickup.retract();
+    }
+
+    public void extendPickup() {
+        pickup.extend();
+    }
+
     /**
      *
      */
@@ -233,6 +249,7 @@ public class Elevator implements RobotProperties {
         elevatorPIDController.disablePID();
         elevatorLeaderMotor.disable();
         feedLeaderMotor.disable();
+        pickup.disable();
     }
 
     public void shuffleboardInit(final String tabName) {
@@ -241,8 +258,7 @@ public class Elevator implements RobotProperties {
         // shooterTab.addBoolean("Shooter At Speed:", () ->
         // isBothShootersAtVelocity(SHOOTER_TILT_ALLOWED_DEVIATION));
         shooterTab.addString("Elevator Position:", () -> String.format("%.2f | %.2f", getElevatorPosition(), getElevatorDesiredPoition()));
-        // shooterTab.addString("Upper Shooter RPM:", () -> String.format("%.2f | %.2f",
-        // getUpperShooterVelocity(), getUpperShooterTargetVelocity()));
+        shooterTab.addString("PID:", () -> String.format("%.5f", elevatorPIDController.getPIDValue()));
         // shooterTab.addString("Shooter Tilt:", () -> String.format("%.2f | %.2f",
         // getShooterTilt(), getShooterTiltSetPosition()));
         // shooterTab.addString("Shooter Tilt Raw:", () -> String.format("%.2f",

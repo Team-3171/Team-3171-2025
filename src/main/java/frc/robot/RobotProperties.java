@@ -75,17 +75,17 @@ public interface RobotProperties {
         public static final double MIN_PRESSURE = 95, MAX_PRESSURE = 110;
 
         /** Sensor Channels **/
-        public static int ELEVATOR_LINE_SENSOR_CHANNEL = 2;
-        public static int ELEVATOR_ENCODER_CHANNEL_A = 0, ELEVATOR_ENCODER_CHANNEL_B = 1;
+        public static int ELEVATOR_LINE_SENSOR_CHANNEL = 8;
+        public static int ELEVATOR_ENCODER_CHANNEL_A = 1, ELEVATOR_ENCODER_CHANNEL_B = 0;
 
         /** Elevator Properties **/
-        public static int ELEVATOR_LOWER_CUTOFF = 300, ELEVATOR_UPPER_CUTOFF = 11500;
+        public static int ELEVATOR_LOWER_CUTOFF = 300, ELEVATOR_UPPER_CUTOFF = 11700;
 
         /** Photon Vision Constants **/
         public static final HashMap<String, PhotonCameraConfig> PHOTON_CAMERAS_CONFIGS = new HashMap<>() {
                 {
-                        put("FRONT_TARGETING_CAMERA", new PhotonCameraConfig("FRONT_TARGETING_CAMERA", Units.inchesToMeters(15), Units.degreesToRadians(22.5)));
-                        put("REAR_TARGETING_CAMERA", new PhotonCameraConfig("REAR_TARGETING_CAMERA", Units.inchesToMeters(15), Units.degreesToRadians(22.5)));
+                        put("photonvision-front", new PhotonCameraConfig("photonvision-front", Units.inchesToMeters(15), Units.degreesToRadians(22.5)));
+                        put("photonvision-rear", new PhotonCameraConfig("photonvision-rear", Units.inchesToMeters(15), Units.degreesToRadians(22.5)));
                 }
         };
 
@@ -122,11 +122,11 @@ public interface RobotProperties {
         public static final AprilTagFieldLayout AprilTagLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2024Crescendo);
 
         /** PID Variables **/
-        public static final double GYRO_KP = .013, GYRO_KI = .00075, GYRO_KD = .00075, GYRO_MIN = -.5, GYRO_MAX = .5;
-        public static final double SLEW_KP = -.015, SLEW_KI = -0.003, SLEW_KD = .003, SLEW_PID_MIN = -.6, SLEW_PID_MAX = .6;
+        public static final double GYRO_KP = .011, GYRO_KI = .00075, GYRO_KD = .00075, GYRO_MIN = -.5, GYRO_MAX = .5;
+        public static final double SLEW_KP = -.0175, SLEW_KI = -0.0005, SLEW_KD = 0, SLEW_PID_MIN = -.75, SLEW_PID_MAX = .75;
         public static final double SHOOTER_KP = .00025, SHOOTER_KI = .0004, SHOOTER_KD = -.002, SHOOTER_MIN = -1, SHOOTER_MAX = 1;
         public static final double LIMELIGHT_KP = -.0175, LIMELIGHT_KI = -.0022, LIMELIGHT_KD = -.0022, LIMELIGHT_MIN = -.5, LIMELIGHT_MAX = .5;
-        public static final double ELEVATOR_KP = -.6, ELEVATOR_KI = 0, ELEVATOR_KD = 0, ELEVATOR_KF = 0, ELEVATOR_PID_MIN = -5, ELEVATOR_PID_MAX = .75;
+        public static final double ELEVATOR_KP = .0003, ELEVATOR_KI = .00005, ELEVATOR_KD = .03, ELEVATOR_KF = 0, ELEVATOR_PID_MIN = -1, ELEVATOR_PID_MAX = 1;
 
         /** Auton Mode Constants **/
         public static final String DEFAULT_AUTON = "Disabled";

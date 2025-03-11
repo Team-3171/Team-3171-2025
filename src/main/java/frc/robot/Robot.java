@@ -73,7 +73,6 @@ public class Robot extends TimedRobot implements RobotProperties {
   private SparkMax climberMotor;
 
   // Pneumatics
-  private DoublePistonController pickup;
   private Compressor compressor;
 
   // Auton Recorder
@@ -103,11 +102,13 @@ public class Robot extends TimedRobot implements RobotProperties {
   private double desiredElevatorPosition;
   private boolean robotOffGround;
   private volatile boolean fieldOrientationFlipped;
+  private volatile boolean elevatorSafety;
 
   // Edge Triggers
   private boolean zeroEdgeTrigger;
   private boolean elevatorPositionEdgeTrigger;
   private boolean feederEdgeTrigger;
+  private boolean elevatorSafetyEdgeTrigger;
 
   @Override
   public void robotInit() {
@@ -116,7 +117,7 @@ public class Robot extends TimedRobot implements RobotProperties {
     operatorController = new XboxController(1);
 
     // Sensors
-    feedSensor = new DigitalInput(5);
+    feedSensor = new DigitalInput(ELEVATOR_LINE_SENSOR_CHANNEL);
     gyro = new Pigeon2(GYRO_CAN_ID, "canivore");
     gyro.reset();
 
@@ -133,7 +134,6 @@ public class Robot extends TimedRobot implements RobotProperties {
     climberMotor.configure(climberConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
     // Pneumatics Init
-    pickup = new DoublePistonController(PCM_CAN_ID, PneumaticsModuleType.REVPH, PICKUP_FORWARD_CHANNEL, PICKUP_REVERSE_CHANNEL, PICKUP_INVERTED);
     compressor = new Compressor(PCM_CAN_ID, PneumaticsModuleType.REVPH);
     compressor.enableAnalog(MIN_PRESSURE, MAX_PRESSURE);
 
@@ -172,19 +172,21 @@ public class Robot extends TimedRobot implements RobotProperties {
 
     // Vision Controller Init
     visionController = new VisionController();
-    // visionController.shuffleboardTabInit("FRONT_TARGETING_CAMERA", "Front Cameras");
-    // visionController.shuffleboardTabInit("REAR_TARGETING_CAMERA", "Rear Cameras");
+    visionController.shuffleboardTabInit("photonvision-front", "Front Cameras");
+    visionController.shuffleboardTabInit("photonvision-rear", "Rear Cameras");
 
     // Global Variable Init
     driveControllerState = new XboxControllerState();
     operatorControllerState = new XboxControllerState();
     desiredElevatorPosition = 0;
     fieldOrientationFlipped = false;
+    elevatorSafety = true;
 
     // Edge Triggers Init
     zeroEdgeTrigger = false;
     elevatorPositionEdgeTrigger = false;
     feederEdgeTrigger = false;
+    elevatorSafetyEdgeTrigger = false;
 
     shuffleboardInit();
 
@@ -209,11 +211,11 @@ public class Robot extends TimedRobot implements RobotProperties {
     periodicTab.addBoolean("Flipped", () -> fieldOrientationFlipped);
 
     // Put the values on Shuffleboard
-    periodicTab.addString("Gyro", () -> String.format("%.2f\u00B0 | %.2f\u00B0", gyroPIDController.getSensorValue(),
-        gyroPIDController.getSensorLockValue()));
+    periodicTab.addString("Gyro", () -> String.format("%.2f\u00B0 | %.2f\u00B0", gyroPIDController.getSensorValue(), gyroPIDController.getSensorLockValue()));
     periodicTab.addBoolean("Off Ground:", () -> robotOffGround);
     periodicTab.addBoolean("Line Sensor:", () -> !feedSensor.get());
     periodicTab.addString("Air Pressure", () -> String.format("%.2f PSI", compressor.getPressure()));
+    periodicTab.addBoolean("Elevator Safety:", () -> elevatorSafety);
 
     // Controller Values
     swerveDrive.shuffleboardInit("Swerve Debug");
@@ -377,7 +379,6 @@ public class Robot extends TimedRobot implements RobotProperties {
     gyroPIDController.disablePID();
     elevatorController.disable();
     climberMotor.disable();
-    pickup.disable();
 
     // Once auton recording is done, save the data to a file, if there is any
     if (saveNewAuton) {
@@ -415,11 +416,13 @@ public class Robot extends TimedRobot implements RobotProperties {
     gyroPIDController.updateSensorLockValue();
 
     desiredElevatorPosition = 0;
+    elevatorSafety = true;
 
     // Edge Triggers reset
     zeroEdgeTrigger = false;
     elevatorPositionEdgeTrigger = false;
     feederEdgeTrigger = false;
+    elevatorSafetyEdgeTrigger = false;
   }
 
   private void driveControlsPeriodic(final XboxControllerState driveControllerState, final double gyroValue) {
@@ -521,26 +524,30 @@ public class Robot extends TimedRobot implements RobotProperties {
 
     // Elevator Controls
     if (button_elevator_feed && !elevatorPositionEdgeTrigger) {
-      pickup.retract();
-      desiredElevatorPosition = 2000;
+      elevatorController.retractPickup();
+      desiredElevatorPosition = 2915;
     } else if (button_elevator_pos_one && !elevatorPositionEdgeTrigger) {
-      pickup.extend();
+      // pickup.disable();
       desiredElevatorPosition = 0;
     } else if (button_elevator_pos_two && !elevatorPositionEdgeTrigger) {
-      pickup.extend();
-      desiredElevatorPosition = 2000;
+      // pickup.extend();
+      desiredElevatorPosition = 4143;
     } else if (button_elevator_pos_three && !elevatorPositionEdgeTrigger) {
-      pickup.extend();
-      desiredElevatorPosition = 6000;
+      // pickup.extend();
+      desiredElevatorPosition = 7305;
     } else if (button_elevator_pos_four && !elevatorPositionEdgeTrigger) {
-      pickup.extend();
-      desiredElevatorPosition = 10000;
+      // pickup.extend();
+      desiredElevatorPosition = 11561;
     } else if (Math.abs(leftStickY) > 0) {
       desiredElevatorPosition = elevatorController.getElevatorPosition();
-      elevatorController.setElevatorSpeed(leftStickY);
+      if (elevatorSafety) {
+        elevatorController.setElevatorSpeed(leftStickY, ELEVATOR_LOWER_CUTOFF, ELEVATOR_UPPER_CUTOFF);
+      } else {
+        elevatorController.setElevatorSpeed(leftStickY);
+      }
     } else {
-      elevatorController.setElevatorSpeed(0);
-      // elevatorController.setElevatorPosition(desiredElevatorPosition, ELEVATOR_LOWER_CUTOFF, ELEVATOR_UPPER_CUTOFF);
+      // elevatorController.setElevatorSpeed(0);
+      elevatorController.setElevatorPosition(desiredElevatorPosition, ELEVATOR_LOWER_CUTOFF, ELEVATOR_UPPER_CUTOFF);
     }
     elevatorPositionEdgeTrigger = button_elevator_feed || button_elevator_pos_one || button_elevator_pos_two || button_elevator_pos_three || button_elevator_pos_four;
 
@@ -550,17 +557,24 @@ public class Robot extends TimedRobot implements RobotProperties {
     } else if (button_run_feed_forward) {
       elevatorController.setFeederSpeed(.5);
     } else if (button_run_feed_auto && !feederEdgeTrigger) {
-      elevatorController.feedUntilClear(.5, feedSensor, 5);
+      elevatorController.feedUntilClear(.5, feedSensor, .75, 1);
     } else {
       elevatorController.setFeederSpeed(0);
     }
     feederEdgeTrigger = button_run_feed_auto;
 
     if (button_extend_pickup) {
-      pickup.extend();
+      elevatorController.extendPickup();
     } else if (button_retract_pickup) {
-      pickup.retract();
+      elevatorController.retractPickup();
     }
+
+    // Calibrate Swerve Drive
+    final boolean elevatorSafetyTrigger = operatorControllerState.getBackButton() && operatorControllerState.getStartButton();
+    if (elevatorSafetyTrigger && !elevatorSafetyEdgeTrigger) {
+      elevatorSafety = false;
+    }
+    elevatorSafetyEdgeTrigger = elevatorSafetyTrigger;
 
   }
 

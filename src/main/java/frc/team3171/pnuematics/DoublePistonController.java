@@ -67,9 +67,7 @@ public class DoublePistonController {
      *            Whether or not the {@linkplain DoublePistonController}
      *            needs to be inverted.
      */
-    public DoublePistonController(final int pcmCANID, final PneumaticsModuleType moduleType,
-            final int forwardChannel, final int reverseChannel,
-            final boolean inverted) {
+    public DoublePistonController(final int pcmCANID, final PneumaticsModuleType moduleType, final int forwardChannel, final int reverseChannel, final boolean inverted) {
         this(new DoubleSolenoid(pcmCANID, moduleType, forwardChannel, reverseChannel), inverted);
     }
 
@@ -196,11 +194,8 @@ public class DoublePistonController {
         }
     }
 
-    /**
-     * Retracts the piston.
-     */
     public void disable() {
-        retract();
+        doubleSolenoid.set(Value.kOff);
     }
 
 }
