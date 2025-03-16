@@ -525,7 +525,7 @@ public class Robot extends TimedRobot implements RobotProperties {
     // Elevator Controls
     if (button_elevator_feed && !elevatorPositionEdgeTrigger) {
       elevatorController.retractPickup();
-      desiredElevatorPosition = 2915;
+      desiredElevatorPosition = 2690;
     } else if (button_elevator_pos_one && !elevatorPositionEdgeTrigger) {
       // pickup.disable();
       desiredElevatorPosition = 0;
