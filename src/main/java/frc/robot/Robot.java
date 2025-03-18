@@ -477,14 +477,15 @@ public class Robot extends TimedRobot implements RobotProperties {
       // TODO Pickup Locking
       gyroPIDController.disablePID();
       swerveDrive.drive(fieldCorrectedAngle, leftStickMagnitude, rightStickX, boostMode);
+    } else if (driveControllerState.getPOV() != -1) {
+      gyroPIDController.enablePID();
+
+      final double dPadAngle = driveControllerState.getPOV();
+      final boolean closeEnough = Math.abs(Get_Gyro_Displacement(gyroValue, gyroPIDController.getSensorLockValue())) <= 1;
+      swerveDrive.drive(dPadAngle, .15, FIELD_ORIENTED_SWERVE ? (closeEnough ? 0 : gyroPIDController.getPIDValue()) : 0, boostMode);
     } else {
       // Normal gyro locking
       gyroPIDController.enablePID();
-
-      // Quick Turning
-      if (driveControllerState.getPOV() != -1) {
-        gyroPIDController.updateSensorLockValueWithoutReset(Normalize_Gryo_Value(driveControllerState.getPOV()));
-      }
 
       final boolean closeEnough = Math.abs(Get_Gyro_Displacement(gyroValue, gyroPIDController.getSensorLockValue())) <= 1;
       swerveDrive.drive(fieldCorrectedAngle, leftStickMagnitude, FIELD_ORIENTED_SWERVE ? (closeEnough ? 0 : gyroPIDController.getPIDValue()) : 0, boostMode);
@@ -506,7 +507,7 @@ public class Robot extends TimedRobot implements RobotProperties {
 
   private void operatorControlsPeriodic(final XboxControllerState operatorControllerState, final double gyroValue) {
     // Get the needed joystick values after calculating the deadzones
-    final double leftStickY = Deadzone_With_Map(JOYSTICK_DEADZONE, -operatorControllerState.getLeftY(), -1, 1);
+    final double leftStickY = Deadzone_With_Map(OPERATOR_JOYSTICK_DEADZONE, -operatorControllerState.getLeftY(), -1, 1);
 
     // Get controls
     final boolean button_elevator_feed = operatorControllerState.getLeftBumper();
@@ -527,18 +528,19 @@ public class Robot extends TimedRobot implements RobotProperties {
       elevatorController.retractPickup();
       desiredElevatorPosition = 2690;
     } else if (button_elevator_pos_one && !elevatorPositionEdgeTrigger) {
-      // pickup.disable();
+      elevatorController.retractPickup();
       desiredElevatorPosition = 0;
     } else if (button_elevator_pos_two && !elevatorPositionEdgeTrigger) {
-      // pickup.extend();
+      elevatorController.retractPickup();
       desiredElevatorPosition = 4143;
     } else if (button_elevator_pos_three && !elevatorPositionEdgeTrigger) {
-      // pickup.extend();
+      elevatorController.retractPickup();
       desiredElevatorPosition = 7305;
     } else if (button_elevator_pos_four && !elevatorPositionEdgeTrigger) {
-      // pickup.extend();
+      elevatorController.retractPickup();
       desiredElevatorPosition = 11561;
     } else if (Math.abs(leftStickY) > 0) {
+      elevatorController.retractPickup();
       desiredElevatorPosition = elevatorController.getElevatorPosition();
       if (elevatorSafety) {
         elevatorController.setElevatorSpeed(leftStickY, ELEVATOR_LOWER_CUTOFF, ELEVATOR_UPPER_CUTOFF);
@@ -546,7 +548,6 @@ public class Robot extends TimedRobot implements RobotProperties {
         elevatorController.setElevatorSpeed(leftStickY);
       }
     } else {
-      // elevatorController.setElevatorSpeed(0);
       elevatorController.setElevatorPosition(desiredElevatorPosition, ELEVATOR_LOWER_CUTOFF, ELEVATOR_UPPER_CUTOFF);
     }
     elevatorPositionEdgeTrigger = button_elevator_feed || button_elevator_pos_one || button_elevator_pos_two || button_elevator_pos_three || button_elevator_pos_four;

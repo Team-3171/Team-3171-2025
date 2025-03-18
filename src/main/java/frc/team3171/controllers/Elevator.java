@@ -125,20 +125,20 @@ public class Elevator implements RobotProperties {
 
     /**
      *
-     * @param position
+     * @param desiredPosition
      */
-    public void setElevatorPosition(final double position, final double lowerBound, final double upperBound) {
-        final double ElevatorPosition = getElevatorPosition();
+    public void setElevatorPosition(final double desiredPosition, final double lowerBound, final double upperBound) {
+        final double currentPosition = getElevatorPosition();
         // final int winchTwoPosition = elevatorTwo.getEncoderValue();
-        if (position < ElevatorPosition && ElevatorPosition <= lowerBound) {
+        if (desiredPosition < currentPosition && currentPosition <= lowerBound) {
             elevatorPIDController.disablePID();
             elevatorLeaderMotor.set(0);
-        } else if (position > ElevatorPosition && ElevatorPosition >= upperBound) {
+        } else if (desiredPosition > currentPosition && currentPosition >= upperBound) {
             elevatorPIDController.disablePID();
             elevatorLeaderMotor.set(0);
         } else {
             elevatorPIDController.enablePID();
-            elevatorPIDController.updateSensorLockValueWithoutReset(position);
+            elevatorPIDController.updateSensorLockValueWithoutReset(desiredPosition);
             elevatorLeaderMotor.set(elevatorPIDController.getPIDValue());
         }
     }
