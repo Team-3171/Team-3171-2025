@@ -5,6 +5,7 @@ import java.util.HashMap;
 
 // FRC Imports
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
@@ -76,7 +77,7 @@ public interface RobotProperties {
         public static final double MIN_PRESSURE = 95, MAX_PRESSURE = 110;
 
         /** Sensor Channels **/
-        public static int ELEVATOR_LINE_SENSOR_CHANNEL = 8;
+        public static int ELEVATOR_LINE_SENSOR_CHANNEL = 2;
         public static int ELEVATOR_ENCODER_CHANNEL_A = 1, ELEVATOR_ENCODER_CHANNEL_B = 0;
 
         /** Elevator Properties **/
@@ -85,7 +86,7 @@ public interface RobotProperties {
         /** Photon Vision Constants **/
         public static final HashMap<String, PhotonCameraConfig> PHOTON_CAMERAS_CONFIGS = new HashMap<>() {
                 {
-                        put("photonvision-front", new PhotonCameraConfig("photonvision-front", Units.inchesToMeters(15), Units.degreesToRadians(22.5)));
+                        put("Arducam_USB_Camera", new PhotonCameraConfig("Arducam_USB_Camera", Units.inchesToMeters(15), Units.degreesToRadians(22.5)));
                         put("photonvision-rear", new PhotonCameraConfig("photonvision-rear", Units.inchesToMeters(15), Units.degreesToRadians(22.5)));
                 }
         };
@@ -120,7 +121,9 @@ public interface RobotProperties {
                 }
         };
 
-        public static final AprilTagFieldLayout AprilTagLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2024Crescendo);
+        public static final AprilTagFieldLayout AprilTagLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeAndyMark); //k2025ReefscapeWelded
+        public static final int[] RED_REEF_FIDUCIAL_IDS = { 6, 7, 8, 9, 10, 11};
+        public static final int[] BLUE_REEF_FIDUCIAL_IDS = { 17, 18, 19, 20, 21, 22};
 
         /** PID Variables **/
         public static final double GYRO_KP = .011, GYRO_KI = .00075, GYRO_KD = .00075, GYRO_MIN = -.5, GYRO_MAX = .5;

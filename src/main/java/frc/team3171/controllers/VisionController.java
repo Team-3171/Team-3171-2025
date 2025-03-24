@@ -146,6 +146,44 @@ public class VisionController implements RobotProperties {
         return preferedTarget;
     }
 
+    public PhotonAprilTagTarget getClosestAprilTagById(final int[] fiducialIds, final String photonCameraName) {
+        PhotonCamera photonCamera = PHOTON_CAMERAS.get(photonCameraName);
+
+        // Final target will be the closest AprilTag with an accepted fiducialID
+        PhotonTrackedTarget preferredTarget = null;
+
+        // guard clauses
+        if (photonCamera == null || !photonCamera.isConnected()) return null;
+
+        PhotonPipelineResult result = photonCamera.getLatestResult();
+        if (!result.hasTargets()) return null;
+
+        for (PhotonTrackedTarget currentTarget : result.targets) {
+            // only accept targets with correct fiducialIDs
+            int targetID = currentTarget.getFiducialId();
+            boolean accepted = false;
+            for (int id : fiducialIds) {
+                if (id == targetID) accepted = true;
+            }
+
+            if (accepted) {
+                // if no preferred target has been set
+                if (preferredTarget == null) {
+                    preferredTarget = currentTarget;
+                }
+                // else prefer the one with the greatest area
+                else if (preferredTarget.getArea() < currentTarget.getArea()) {
+                    preferredTarget = currentTarget;
+                }
+            }
+        }
+
+        // why does there need to be a wrapper class for this
+        if (preferredTarget == null) return null;
+
+        return new PhotonAprilTagTarget(photonCameraName, preferredTarget);
+    }
+
     public void shuffleboardTabInit(final String photonCameraName, final String tabName) {
         final PhotonCameraConfig photonCameraConfig = PHOTON_CAMERAS_CONFIGS.get(photonCameraName);
         final PhotonCamera photonCamera = PHOTON_CAMERAS.get(photonCameraName);

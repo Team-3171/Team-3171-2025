@@ -7,6 +7,11 @@ package frc.robot;
 // Java Imports
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import org.photonvision.PhotonCamera;
+import org.photonvision.PhotonUtils;
+import org.photonvision.targeting.PhotonPipelineResult;
+import org.photonvision.targeting.PhotonTrackedTarget;
+
 // FRC Imports
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
@@ -18,11 +23,23 @@ import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.util.Color;
+import edu.wpi.first.apriltag.AprilTagFieldLayout;
+import edu.wpi.first.apriltag.AprilTagFields;
+import edu.wpi.first.math.geometry.Rotation3d;
+import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.wpilibj.AddressableLED;
 import edu.wpi.first.wpilibj.AddressableLEDBuffer;
 import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.apriltag.AprilTagFieldLayout;
+import edu.wpi.first.apriltag.AprilTagFields;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator3d;
 
 // CTRE Imports
 import com.ctre.phoenix6.hardware.Pigeon2;
@@ -92,6 +109,8 @@ public class Robot extends TimedRobot implements RobotProperties {
 
   // Vision Controller
   private VisionController visionController;
+  // Preferred AprilTagTarget
+  PhotonAprilTagTarget preferredTarget;
 
   // LED Objects
   private AddressableLED m_led;
@@ -109,6 +128,34 @@ public class Robot extends TimedRobot implements RobotProperties {
   private boolean elevatorPositionEdgeTrigger;
   private boolean feederEdgeTrigger;
   private boolean elevatorSafetyEdgeTrigger;
+
+  // Bjorn Vars
+  private AprilTagFieldLayout fieldLayout;
+  private PhotonCamera camera;
+  private Transform3d robotToCam;
+  private boolean targetLocked;
+  private boolean closeEnough;
+  private double horizontalDiff;
+  private double verticalDiff;
+  private double directDriveAngle;
+  private double trackingMagnitude;
+  private int[] reefTagIDs; // Set Fiducial IDs of AprilTags given alliance side
+  // Method Variables
+  private PhotonPipelineResult result;
+  private PhotonTrackedTarget target;
+  private Transform3d cameraToTag;
+  private double closeDist; // Initialize at "large" values
+  private double closeRot; // (Degrees)
+  private int notEveryFrame;
+
+  // Poses are relative to bottom-left corner of field with CCW rotation
+  private Pose3d tagPose3D;
+  private Pose3d robotPose3D; 
+
+  private Pose2d tagPose2D;
+  private Pose2d robotPose2D; 
+  private Pose2d goalPose2D;
+
 
   @Override
   public void robotInit() {
@@ -172,9 +219,11 @@ public class Robot extends TimedRobot implements RobotProperties {
 
     // Vision Controller Init
     visionController = new VisionController();
-    visionController.shuffleboardTabInit("photonvision-front", "Front Cameras");
+    visionController.shuffleboardTabInit("Arducam_USB_Camera", "Front Cameras");
     visionController.shuffleboardTabInit("photonvision-rear", "Rear Cameras");
-
+    // PreferredAprilTagTarget init
+    preferredTarget = null;
+    
     // Global Variable Init
     driveControllerState = new XboxControllerState();
     operatorControllerState = new XboxControllerState();
@@ -187,6 +236,33 @@ public class Robot extends TimedRobot implements RobotProperties {
     elevatorPositionEdgeTrigger = false;
     feederEdgeTrigger = false;
     elevatorSafetyEdgeTrigger = false;
+
+    // Bjorn Init
+    fieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeAndyMark); //AprilTagFields.k2025ReefscapeWelded
+    camera = new PhotonCamera("Arducam_USB_Camera");
+    robotToCam = new Transform3d(
+      new Translation3d(9 * 0.0254, // X: Forward/Backward from center (+/-)
+                        5 * 0.0254, // Y: Left/Right from center (+/-)
+                        32.49 * 0.0254 // Z: Up/Down from center (+/-)
+                        ),
+      new Rotation3d()
+    );
+    targetLocked = false;
+    closeEnough = false;
+    horizontalDiff = 0;
+    verticalDiff = 0;
+    directDriveAngle = 0;
+    trackingMagnitude = 0;
+    switch (DriverStation.getAlliance().get()) {  // Set Fiducial IDs of AprilTags given alliance side
+      case Red:
+          reefTagIDs = new int[]{6,7,8,9,10,11};
+          break;
+      default:
+          reefTagIDs = new int[]{17,18,19,20,21,22};
+          break;
+    } 
+    closeDist = 10; // Initialize at "large" values
+    closeRot = 90; // (Degrees)
 
     shuffleboardInit();
 
@@ -213,7 +289,7 @@ public class Robot extends TimedRobot implements RobotProperties {
     // Put the values on Shuffleboard
     periodicTab.addString("Gyro", () -> String.format("%.2f\u00B0 | %.2f\u00B0", gyroPIDController.getSensorValue(), gyroPIDController.getSensorLockValue()));
     periodicTab.addBoolean("Off Ground:", () -> robotOffGround);
-    periodicTab.addBoolean("Line Sensor:", () -> !feedSensor.get());
+    periodicTab.addBoolean("Line Sensor:", () -> feedSensor.get());
     periodicTab.addString("Air Pressure", () -> String.format("%.2f PSI", compressor.getPressure()));
     periodicTab.addBoolean("Elevator Safety:", () -> elevatorSafety);
 
@@ -244,6 +320,24 @@ public class Robot extends TimedRobot implements RobotProperties {
       debugTab.addString("Right Stick X", () -> String.format("%.2f", rightStickX));
       debugTab.addString("Field Adjusted Angle", () -> String.format("%.2f\u00B0", fieldCorrectedAngle));
     }
+
+    // Check if desired april tags are in view on rear camera dashboard
+    ShuffleboardTab rearCam = Shuffleboard.getTab("Rear Cameras");
+
+    rearCam.addDouble("trueYaw", () -> { 
+      result = camera.getLatestResult();
+
+      if(robotPose2D != null && goalPose2D != null) {
+        return closeRot;
+      } else {
+        return 0.0;
+      }
+      
+    });
+    rearCam.addBoolean("closeEnough", () -> {
+      return closeEnough;
+    });
+
   }
 
   @Override
@@ -268,7 +362,7 @@ public class Robot extends TimedRobot implements RobotProperties {
     zeroEdgeTrigger = zeroTrigger;
 
     // LED Updates
-    Color color = !feedSensor.get() ? Color.kGreen
+    Color color = feedSensor.get() ? Color.kGreen
         : DriverStation.getAlliance().get() == Alliance.Blue ? Color.kBlue : Color.kRed;
     for (int i = 0; i < m_ledBuffer.getLength(); i++) {
       m_ledBuffer.setLED(i, color);
@@ -440,43 +534,81 @@ public class Robot extends TimedRobot implements RobotProperties {
     final double fieldCorrectedAngle = FIELD_ORIENTED_SWERVE ? Normalize_Gryo_Value(leftStickAngle - gyroValue) : leftStickAngle;
 
     // Drive Controls
-    final boolean boostMode = driveControllerState.getYButton();
-    final boolean targetLocking = false;// driveControllerState.getAButton();
-    final boolean pickupLocking = false;// driveControllerState.getBButton();
+    final boolean boostMode = false;
+    final boolean targetLockLeft = driveControllerState.getXButton();
+    final boolean targetLockRight = driveControllerState.getBButton();
+
     if (rightStickX != 0 || robotOffGround) {
       // Manual turning
       gyroPIDController.disablePID();
       swerveDrive.drive(fieldCorrectedAngle, leftStickMagnitude, rightStickX, boostMode);
-    } else if (targetLocking) {
-      // April Tag Target Locking
+      targetLocked = false;
+      closeEnough = false;
+    } else if (targetLockLeft || targetLockRight) {
+      
+      // Enable April Tag Target Locking
       gyroPIDController.enablePID();
 
-      // Aquire Targets
-      final PhotonAprilTagTarget aprilTagTarget;
-      final double offset;
-      switch (DriverStation.getAlliance().get()) {
-        case Red:
-          // Target priority: 4, 3 w/ -5 offset, 5, 9 or 10
-          aprilTagTarget = visionController.getAllVisibleAprilTagsByPriority(new int[] { 4, 5, 9, 10 }, "FRONT_TARGETING_CAMERA", "REAR_TARGETING_CAMERA");
-          offset = aprilTagTarget == null ? 0 : aprilTagTarget.getPHOTON_TRACKED_TARGET().getFiducialId() == 3 ? -5 : 0;
-          break;
-        default:
-          // Target priority: 7, 8 w/ -5 offset, 6, 1 or 2
-          aprilTagTarget = visionController.getAllVisibleAprilTagsByPriority(new int[] { 7, 6, 1, 2 }, "FRONT_TARGETING_CAMERA", "REAR_TARGETING_CAMERA");
-          offset = aprilTagTarget == null ? 0 : aprilTagTarget.getPHOTON_TRACKED_TARGET().getFiducialId() == 8 ? -5 : 0;
-          break;
+      result = camera.getLatestResult();
+      notEveryFrame += 1;
+      if(result.hasTargets() && notEveryFrame >= 2) {
+        notEveryFrame = 0;
+        target =  result.getBestTarget();
+        cameraToTag = target.getBestCameraToTarget();
+        tagPose3D = fieldLayout.getTagPose(target.getFiducialId()).get(); // .get() is necessary to retrieve Pose3d from Optional<Pose3d>
+        tagPose2D = tagPose3D.toPose2d();
+        robotPose3D = PhotonUtils.estimateFieldToRobotAprilTag(cameraToTag, tagPose3D, robotToCam.inverse());
+        robotPose2D = robotPose3D.toPose2d();
+        
+        // If no target has been chosen, check if seen target is on the reef, then create desired pose
+        if(!targetLocked) {
+            for(int fiducialId : reefTagIDs) {
+                if(target.getFiducialId() == fiducialId) {
+                    goalPose2D = new Pose2d(
+                      tagPose2D.getTranslation().plus(new Translation2d(1.2, 0.0).rotateBy(tagPose2D.getRotation())), // Move X meters behind Tag
+                      tagPose2D.getRotation().plus(Rotation2d.fromDegrees(180)) // Face opposite direction (Towards tag)
+                    );
+                    targetLocked = true;
+                }
+            }
+        }
+
+        // Check if estimated pose close enough to desired pose
+        if(goalPose2D != null) {
+            closeDist = robotPose2D.getTranslation().getDistance(goalPose2D.getTranslation());
+            closeRot = Math.abs(robotPose2D.getRotation().minus(goalPose2D.getRotation()).getDegrees());
+            if(closeDist < 0.3) closeEnough = true;
+
+            verticalDiff = goalPose2D.getY() - robotPose2D.getY(); // Field pose -Y corresponds to Controller +X
+            horizontalDiff = goalPose2D.getX() - robotPose2D.getX(); // Field Pose +X corresponds to Controller +Y
+            directDriveAngle = Normalize_Gryo_Value(Math.toDegrees(Math.atan2(horizontalDiff, verticalDiff)));
+            trackingMagnitude = 0.2; // TODO:Change to acceleration/deceleration function later if rest of code works
+            // Math.max(MathUtil.clamp(robotPose.getTranslation().getDistance(goalPose.getTranslation()), 0.0, 1.0), .1); // linear scale
+            // gyroPIDController.updateSensorLockValueWithoutReset(Normalize_Gryo_Value(gyroValue + (goalPose2D.getRotation().getRadians()) * 2));
+        }
+        
+        if(!closeEnough) {
+          swerveDrive.drive(directDriveAngle, trackingMagnitude, 0, false);
+        } else {
+          swerveDrive.drive(0,0,0,false);
+        }
+
+      } else {
+          // TODO: Reduce number of times this else statement is called by running AprilTagDetection on rear camera simultaneously
+          if(robotPose2D != null && goalPose2D != null) {
+              // TODO: Continue on path towards goal based on most recently estimated robotPose
+              if(!closeEnough) {
+                  // swerveDrive.drive(directDriveAngle, trackingMagnitude, gyroPIDController.getPIDValue(), false);
+                  swerveDrive.drive(directDriveAngle, trackingMagnitude, 0, false);
+
+              }
+          } else {
+              // TODO: Either rotate robot until tag detected or do nothing (Driver/Lighting/Cam error)
+              // swerveDrive.drive(0, 0, 0.25, false);
+              swerveDrive.drive(0,0,0,false);
+          }
       }
 
-      if (aprilTagTarget != null) {
-        // Adjust the gyro lock to point torwards the target
-        gyroPIDController.updateSensorLockValueWithoutReset(Normalize_Gryo_Value(gyroValue + aprilTagTarget.getPHOTON_TRACKED_TARGET().getYaw() + offset));
-      }
-
-      swerveDrive.drive(fieldCorrectedAngle, leftStickMagnitude, FIELD_ORIENTED_SWERVE ? gyroPIDController.getPIDValue() : 0, boostMode);
-    } else if (pickupLocking) {
-      // TODO Pickup Locking
-      gyroPIDController.disablePID();
-      swerveDrive.drive(fieldCorrectedAngle, leftStickMagnitude, rightStickX, boostMode);
     } else if (driveControllerState.getPOV() != -1) {
       gyroPIDController.enablePID();
 
@@ -487,8 +619,10 @@ public class Robot extends TimedRobot implements RobotProperties {
       // Normal gyro locking
       gyroPIDController.enablePID();
 
-      final boolean closeEnough = Math.abs(Get_Gyro_Displacement(gyroValue, gyroPIDController.getSensorLockValue())) <= 1;
-      swerveDrive.drive(fieldCorrectedAngle, leftStickMagnitude, FIELD_ORIENTED_SWERVE ? (closeEnough ? 0 : gyroPIDController.getPIDValue()) : 0, boostMode);
+      final boolean closeEnoughIsh = Math.abs(Get_Gyro_Displacement(gyroValue, gyroPIDController.getSensorLockValue())) <= 1;
+      swerveDrive.drive(fieldCorrectedAngle,  leftStickMagnitude, closeEnoughIsh ? 0 : gyroPIDController.getPIDValue(), false);
+      targetLocked = false;
+      closeEnough = false;
     }
 
     // Climber Controls
