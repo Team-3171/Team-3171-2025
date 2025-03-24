@@ -25,6 +25,8 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
+import edu.wpi.first.cameraserver.CameraServer;
+import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -108,13 +110,13 @@ public class Robot extends TimedRobot implements RobotProperties {
   private SendableChooser<String> autonModeChooser;
 
   // Vision Controller
-  //private VisionController visionController;
+  // private VisionController visionController;
   // Preferred AprilTagTarget
   PhotonAprilTagTarget preferredTarget;
 
   // LED Objects
-  //private AddressableLED m_led;
-  //private AddressableLEDBuffer m_ledBuffer;
+  // private AddressableLED m_led;
+  // private AddressableLEDBuffer m_ledBuffer;
 
   // Global Variables
   private XboxControllerState driveControllerState, operatorControllerState;
@@ -150,12 +152,11 @@ public class Robot extends TimedRobot implements RobotProperties {
 
   // Poses are relative to bottom-left corner of field with CCW rotation
   private Pose3d tagPose3D;
-  private Pose3d robotPose3D; 
+  private Pose3d robotPose3D;
 
   private Pose2d tagPose2D;
-  private Pose2d robotPose2D; 
+  private Pose2d robotPose2D;
   private Pose2d goalPose2D;
-
 
   @Override
   public void robotInit() {
@@ -218,12 +219,12 @@ public class Robot extends TimedRobot implements RobotProperties {
     fieldOrientationChooser.addOption("180\u00B0", true);
 
     // Vision Controller Init
-    //visionController = new VisionController();
-    //visionController.shuffleboardTabInit("Arducam_USB_Camera", "Front Cameras");
-    //visionController.shuffleboardTabInit("photonvision-rear", "Rear Cameras");
+    // visionController = new VisionController();
+    // visionController.shuffleboardTabInit("Arducam_USB_Camera", "Front Cameras");
+    // visionController.shuffleboardTabInit("photonvision-rear", "Rear Cameras");
     // PreferredAprilTagTarget init
     preferredTarget = null;
-    
+
     // Global Variable Init
     driveControllerState = new XboxControllerState();
     operatorControllerState = new XboxControllerState();
@@ -238,43 +239,49 @@ public class Robot extends TimedRobot implements RobotProperties {
     elevatorSafetyEdgeTrigger = false;
 
     // Bjorn Init
-    fieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeAndyMark); //AprilTagFields.k2025ReefscapeWelded
+    fieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeAndyMark); // AprilTagFields.k2025ReefscapeWelded
     camera = new PhotonCamera("Arducam_USB_Camera");
     robotToCam = new Transform3d(
-      new Translation3d(9 * 0.0254, // X: Forward/Backward from center (+/-)
-                        5 * 0.0254, // Y: Left/Right from center (+/-)
-                        32.49 * 0.0254 // Z: Up/Down from center (+/-)
-                        ),
-      new Rotation3d()
-    );
+        new Translation3d(9 * 0.0254, // X: Forward/Backward from center (+/-)
+            5 * 0.0254, // Y: Left/Right from center (+/-)
+            32.49 * 0.0254 // Z: Up/Down from center (+/-)
+        ),
+        new Rotation3d());
     targetLocked = false;
     closeEnough = false;
     horizontalDiff = 0;
     verticalDiff = 0;
     directDriveAngle = 0;
     trackingMagnitude = 0;
-    switch (DriverStation.getAlliance().get()) {  // Set Fiducial IDs of AprilTags given alliance side
+    switch (DriverStation.getAlliance().get()) { // Set Fiducial IDs of AprilTags given alliance side
       case Red:
-          reefTagIDs = new int[]{6,7,8,9,10,11};
-          break;
+        reefTagIDs = new int[] { 6, 7, 8, 9, 10, 11 };
+        break;
       default:
-          reefTagIDs = new int[]{17,18,19,20,21,22};
-          break;
-    } 
+        reefTagIDs = new int[] { 17, 18, 19, 20, 21, 22 };
+        break;
+    }
     closeDist = 10; // Initialize at "large" values
     closeRot = 90; // (Degrees)
 
     shuffleboardInit();
 
-    /*m_ledBuffer = new AddressableLEDBuffer(288);
-    // Set the data
-    for (int i = 0; i < m_ledBuffer.getLength(); i++) {
-      m_ledBuffer.setRGB(i, 0, 128, 0);
-    }
-    m_led = new AddressableLED(0);
-    m_led.setLength(m_ledBuffer.getLength());
-    m_led.setData(m_ledBuffer);
-    m_led.start();*/
+    // Camera Server for webcam
+    final UsbCamera camera0 = CameraServer.startAutomaticCapture();
+    camera0.setResolution(160, 90);
+    camera0.setFPS(20);
+
+    /*
+     * m_ledBuffer = new AddressableLEDBuffer(288);
+     * // Set the data
+     * for (int i = 0; i < m_ledBuffer.getLength(); i++) {
+     * m_ledBuffer.setRGB(i, 0, 128, 0);
+     * }
+     * m_led = new AddressableLED(0);
+     * m_led.setLength(m_ledBuffer.getLength());
+     * m_led.setData(m_ledBuffer);
+     * m_led.start();
+     */
   }
 
   private void shuffleboardInit() {
@@ -296,7 +303,7 @@ public class Robot extends TimedRobot implements RobotProperties {
     // Controller Values
     swerveDrive.shuffleboardInit("Swerve Debug");
     elevatorController.shuffleboardInit("Elevator Debug");
-    //visionController.shuffleboardTabInit("FRONT_TARGETING_CAMERA", "FRONT_TARGETING_CAMERA");
+    // visionController.shuffleboardTabInit("FRONT_TARGETING_CAMERA", "FRONT_TARGETING_CAMERA");
 
     if (DEBUG) {
       ShuffleboardTab debugTab = Shuffleboard.getTab("Debug");
@@ -324,19 +331,21 @@ public class Robot extends TimedRobot implements RobotProperties {
     // Check if desired april tags are in view on rear camera dashboard
     ShuffleboardTab rearCam = Shuffleboard.getTab("Rear Cameras");
 
-    /*rearCam.addDouble("trueYaw", () -> { 
-      result = camera.getLatestResult();
-
-      if(robotPose2D != null && goalPose2D != null) {
-        return closeRot;
-      } else {
-        return 0.0;
-      }
-      
-    });
-    rearCam.addBoolean("closeEnough", () -> {
-      return closeEnough;
-    });*/
+    /*
+     * rearCam.addDouble("trueYaw", () -> {
+     * result = camera.getLatestResult();
+     * 
+     * if(robotPose2D != null && goalPose2D != null) {
+     * return closeRot;
+     * } else {
+     * return 0.0;
+     * }
+     * 
+     * });
+     * rearCam.addBoolean("closeEnough", () -> {
+     * return closeEnough;
+     * });
+     */
 
   }
 
@@ -362,12 +371,14 @@ public class Robot extends TimedRobot implements RobotProperties {
     zeroEdgeTrigger = zeroTrigger;
 
     // LED Updates
-    /*Color color = feedSensor.get() ? Color.kGreen
-        : DriverStation.getAlliance().get() == Alliance.Blue ? Color.kBlue : Color.kRed;
-    for (int i = 0; i < m_ledBuffer.getLength(); i++) {
-      m_ledBuffer.setLED(i, color);
-    }
-    m_led.setData(m_ledBuffer);*/
+    /*
+     * Color color = feedSensor.get() ? Color.kGreen
+     * : DriverStation.getAlliance().get() == Alliance.Blue ? Color.kBlue : Color.kRed;
+     * for (int i = 0; i < m_ledBuffer.getLength(); i++) {
+     * m_ledBuffer.setLED(i, color);
+     * }
+     * m_led.setData(m_ledBuffer);
+     */
   }
 
   @Override
@@ -545,68 +556,71 @@ public class Robot extends TimedRobot implements RobotProperties {
       targetLocked = false;
       closeEnough = false;
     } else if (targetLockLeft || targetLockRight) {
-      
+
       // Enable April Tag Target Locking
       gyroPIDController.enablePID();
 
       result = camera.getLatestResult();
       notEveryFrame += 1;
-      if(result.hasTargets() && notEveryFrame >= 2) {
+      if (result.hasTargets() && notEveryFrame >= 2) {
         notEveryFrame = 0;
-        target =  result.getBestTarget();
+        target = result.getBestTarget();
         cameraToTag = target.getBestCameraToTarget();
         tagPose3D = fieldLayout.getTagPose(target.getFiducialId()).get(); // .get() is necessary to retrieve Pose3d from Optional<Pose3d>
         tagPose2D = tagPose3D.toPose2d();
         robotPose3D = PhotonUtils.estimateFieldToRobotAprilTag(cameraToTag, tagPose3D, robotToCam.inverse());
         robotPose2D = robotPose3D.toPose2d();
-        
+
         // If no target has been chosen, check if seen target is on the reef, then create desired pose
-        if(!targetLocked) {
-            for(int fiducialId : reefTagIDs) {
-                if(target.getFiducialId() == fiducialId) {
-                    goalPose2D = new Pose2d(
-                      tagPose2D.getTranslation().plus(new Translation2d(1.2, 0.0).rotateBy(tagPose2D.getRotation())), // Move X meters behind Tag
-                      tagPose2D.getRotation().plus(Rotation2d.fromDegrees(180)) // Face opposite direction (Towards tag)
-                    );
-                    targetLocked = true;
-                }
+        if (!targetLocked) {
+          for (int fiducialId : reefTagIDs) {
+            if (target.getFiducialId() == fiducialId) {
+              goalPose2D = new Pose2d(
+                  tagPose2D.getTranslation().plus(new Translation2d(1.2, 0.0).rotateBy(tagPose2D.getRotation())), // Move X meters behind Tag
+                  tagPose2D.getRotation().plus(Rotation2d.fromDegrees(180)) // Face opposite direction (Towards tag)
+              );
+              targetLocked = true;
             }
+          }
         }
 
         // Check if estimated pose close enough to desired pose
-        if(goalPose2D != null) {
-            closeDist = robotPose2D.getTranslation().getDistance(goalPose2D.getTranslation());
-            closeRot = Math.abs(robotPose2D.getRotation().minus(goalPose2D.getRotation()).getDegrees());
-            if(closeDist < 0.3) closeEnough = true;
+        if (goalPose2D != null) {
+          closeDist = robotPose2D.getTranslation().getDistance(goalPose2D.getTranslation());
+          closeRot = Math.abs(robotPose2D.getRotation().minus(goalPose2D.getRotation()).getDegrees());
+          if (closeDist < 0.3)
+            closeEnough = true;
 
-            verticalDiff = goalPose2D.getY() - robotPose2D.getY(); // Field pose -Y corresponds to Controller +X
-            horizontalDiff = goalPose2D.getX() - robotPose2D.getX(); // Field Pose +X corresponds to Controller +Y
-            directDriveAngle = Normalize_Gryo_Value(Math.toDegrees(Math.atan2(horizontalDiff, verticalDiff)));
-            trackingMagnitude = 0.2; // TODO:Change to acceleration/deceleration function later if rest of code works
-            // Math.max(MathUtil.clamp(robotPose.getTranslation().getDistance(goalPose.getTranslation()), 0.0, 1.0), .1); // linear scale
-            // gyroPIDController.updateSensorLockValueWithoutReset(Normalize_Gryo_Value(gyroValue + (goalPose2D.getRotation().getRadians()) * 2));
+          verticalDiff = goalPose2D.getY() - robotPose2D.getY(); // Field pose -Y corresponds to Controller +X
+          horizontalDiff = goalPose2D.getX() - robotPose2D.getX(); // Field Pose +X corresponds to Controller +Y
+          directDriveAngle = Normalize_Gryo_Value(Math.toDegrees(Math.atan2(horizontalDiff, verticalDiff)));
+          trackingMagnitude = 0.2; // TODO:Change to acceleration/deceleration function later if rest of code works
+          // Math.max(MathUtil.clamp(robotPose.getTranslation().getDistance(goalPose.getTranslation()), 0.0, 1.0), .1); // linear
+          // scale
+          // gyroPIDController.updateSensorLockValueWithoutReset(Normalize_Gryo_Value(gyroValue +
+          // (goalPose2D.getRotation().getRadians()) * 2));
         }
-        
-        if(!closeEnough) {
+
+        if (!closeEnough) {
           swerveDrive.drive(directDriveAngle, trackingMagnitude, 0, false);
         } else {
-          swerveDrive.drive(0,0,0,false);
+          swerveDrive.drive(0, 0, 0, false);
         }
 
       } else {
-          // TODO: Reduce number of times this else statement is called by running AprilTagDetection on rear camera simultaneously
-          if(robotPose2D != null && goalPose2D != null) {
-              // TODO: Continue on path towards goal based on most recently estimated robotPose
-              if(!closeEnough) {
-                  // swerveDrive.drive(directDriveAngle, trackingMagnitude, gyroPIDController.getPIDValue(), false);
-                  swerveDrive.drive(directDriveAngle, trackingMagnitude, 0, false);
+        // TODO: Reduce number of times this else statement is called by running AprilTagDetection on rear camera simultaneously
+        if (robotPose2D != null && goalPose2D != null) {
+          // TODO: Continue on path towards goal based on most recently estimated robotPose
+          if (!closeEnough) {
+            // swerveDrive.drive(directDriveAngle, trackingMagnitude, gyroPIDController.getPIDValue(), false);
+            swerveDrive.drive(directDriveAngle, trackingMagnitude, 0, false);
 
-              }
-          } else {
-              // TODO: Either rotate robot until tag detected or do nothing (Driver/Lighting/Cam error)
-              // swerveDrive.drive(0, 0, 0.25, false);
-              swerveDrive.drive(0,0,0,false);
           }
+        } else {
+          // TODO: Either rotate robot until tag detected or do nothing (Driver/Lighting/Cam error)
+          // swerveDrive.drive(0, 0, 0.25, false);
+          swerveDrive.drive(0, 0, 0, false);
+        }
       }
 
     } else if (driveControllerState.getPOV() != -1) {
@@ -620,7 +634,7 @@ public class Robot extends TimedRobot implements RobotProperties {
       gyroPIDController.enablePID();
 
       final boolean closeEnoughIsh = Math.abs(Get_Gyro_Displacement(gyroValue, gyroPIDController.getSensorLockValue())) <= 1;
-      swerveDrive.drive(fieldCorrectedAngle,  leftStickMagnitude, closeEnoughIsh ? 0 : gyroPIDController.getPIDValue(), false);
+      swerveDrive.drive(fieldCorrectedAngle, leftStickMagnitude, closeEnoughIsh ? 0 : gyroPIDController.getPIDValue(), false);
       targetLocked = false;
       closeEnough = false;
     }
