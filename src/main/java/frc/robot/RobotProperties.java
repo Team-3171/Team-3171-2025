@@ -76,7 +76,7 @@ public interface RobotProperties {
         public static final double MIN_PRESSURE = 95, MAX_PRESSURE = 110;
 
         /** Sensor Channels **/
-        public static int ELEVATOR_LINE_SENSOR_CHANNEL = 8;
+        public static int ELEVATOR_LINE_SENSOR_CHANNEL = 2;
         public static int ELEVATOR_ENCODER_CHANNEL_A = 1, ELEVATOR_ENCODER_CHANNEL_B = 0;
 
         /** Elevator Properties **/

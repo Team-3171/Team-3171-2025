@@ -213,7 +213,7 @@ public class Robot extends TimedRobot implements RobotProperties {
     // Put the values on Shuffleboard
     periodicTab.addString("Gyro", () -> String.format("%.2f\u00B0 | %.2f\u00B0", gyroPIDController.getSensorValue(), gyroPIDController.getSensorLockValue()));
     periodicTab.addBoolean("Off Ground:", () -> robotOffGround);
-    periodicTab.addBoolean("Line Sensor:", () -> !feedSensor.get());
+    periodicTab.addBoolean("Line Sensor:", () -> feedSensor.get());
     periodicTab.addString("Air Pressure", () -> String.format("%.2f PSI", compressor.getPressure()));
     periodicTab.addBoolean("Elevator Safety:", () -> elevatorSafety);
 
@@ -268,7 +268,7 @@ public class Robot extends TimedRobot implements RobotProperties {
     zeroEdgeTrigger = zeroTrigger;
 
     // LED Updates
-    Color color = !feedSensor.get() ? Color.kGreen
+    Color color = feedSensor.get() ? Color.kGreen
         : DriverStation.getAlliance().get() == Alliance.Blue ? Color.kBlue : Color.kRed;
     for (int i = 0; i < m_ledBuffer.getLength(); i++) {
       m_ledBuffer.setLED(i, color);
