@@ -22,7 +22,7 @@ import frc.team3171.models.ShooterShot;
 public interface RobotProperties {
 
         /** Debug Options **/
-        public static final boolean DEBUG = true;
+        public static final boolean DEBUG = false;
         public static final boolean SWERVE_DIRECTION_DEBUG = false;
         public static final String PID_LOG_ADDRESS = "10.31.71.202";
 
