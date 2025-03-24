@@ -113,8 +113,8 @@ public class Robot extends TimedRobot implements RobotProperties {
   PhotonAprilTagTarget preferredTarget;
 
   // LED Objects
-  private AddressableLED m_led;
-  private AddressableLEDBuffer m_ledBuffer;
+  //private AddressableLED m_led;
+  //private AddressableLEDBuffer m_ledBuffer;
 
   // Global Variables
   private XboxControllerState driveControllerState, operatorControllerState;
@@ -266,7 +266,7 @@ public class Robot extends TimedRobot implements RobotProperties {
 
     shuffleboardInit();
 
-    m_ledBuffer = new AddressableLEDBuffer(288);
+    /*m_ledBuffer = new AddressableLEDBuffer(288);
     // Set the data
     for (int i = 0; i < m_ledBuffer.getLength(); i++) {
       m_ledBuffer.setRGB(i, 0, 128, 0);
@@ -274,7 +274,7 @@ public class Robot extends TimedRobot implements RobotProperties {
     m_led = new AddressableLED(0);
     m_led.setLength(m_ledBuffer.getLength());
     m_led.setData(m_ledBuffer);
-    m_led.start();
+    m_led.start();*/
   }
 
   private void shuffleboardInit() {
@@ -362,12 +362,12 @@ public class Robot extends TimedRobot implements RobotProperties {
     zeroEdgeTrigger = zeroTrigger;
 
     // LED Updates
-    Color color = feedSensor.get() ? Color.kGreen
+    /*Color color = feedSensor.get() ? Color.kGreen
         : DriverStation.getAlliance().get() == Alliance.Blue ? Color.kBlue : Color.kRed;
     for (int i = 0; i < m_ledBuffer.getLength(); i++) {
       m_ledBuffer.setLED(i, color);
     }
-    m_led.setData(m_ledBuffer);
+    m_led.setData(m_ledBuffer);*/
   }
 
   @Override
