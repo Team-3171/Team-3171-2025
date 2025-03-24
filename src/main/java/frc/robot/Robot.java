@@ -108,7 +108,7 @@ public class Robot extends TimedRobot implements RobotProperties {
   private SendableChooser<String> autonModeChooser;
 
   // Vision Controller
-  private VisionController visionController;
+  //private VisionController visionController;
   // Preferred AprilTagTarget
   PhotonAprilTagTarget preferredTarget;
 
@@ -218,9 +218,9 @@ public class Robot extends TimedRobot implements RobotProperties {
     fieldOrientationChooser.addOption("180\u00B0", true);
 
     // Vision Controller Init
-    visionController = new VisionController();
-    visionController.shuffleboardTabInit("Arducam_USB_Camera", "Front Cameras");
-    visionController.shuffleboardTabInit("photonvision-rear", "Rear Cameras");
+    //visionController = new VisionController();
+    //visionController.shuffleboardTabInit("Arducam_USB_Camera", "Front Cameras");
+    //visionController.shuffleboardTabInit("photonvision-rear", "Rear Cameras");
     // PreferredAprilTagTarget init
     preferredTarget = null;
     
@@ -296,7 +296,7 @@ public class Robot extends TimedRobot implements RobotProperties {
     // Controller Values
     swerveDrive.shuffleboardInit("Swerve Debug");
     elevatorController.shuffleboardInit("Elevator Debug");
-    visionController.shuffleboardTabInit("FRONT_TARGETING_CAMERA", "FRONT_TARGETING_CAMERA");
+    //visionController.shuffleboardTabInit("FRONT_TARGETING_CAMERA", "FRONT_TARGETING_CAMERA");
 
     if (DEBUG) {
       ShuffleboardTab debugTab = Shuffleboard.getTab("Debug");
@@ -324,7 +324,7 @@ public class Robot extends TimedRobot implements RobotProperties {
     // Check if desired april tags are in view on rear camera dashboard
     ShuffleboardTab rearCam = Shuffleboard.getTab("Rear Cameras");
 
-    rearCam.addDouble("trueYaw", () -> { 
+    /*rearCam.addDouble("trueYaw", () -> { 
       result = camera.getLatestResult();
 
       if(robotPose2D != null && goalPose2D != null) {
@@ -336,7 +336,7 @@ public class Robot extends TimedRobot implements RobotProperties {
     });
     rearCam.addBoolean("closeEnough", () -> {
       return closeEnough;
-    });
+    });*/
 
   }
 
